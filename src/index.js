@@ -1,11 +1,19 @@
 import 'dotenv/config';
-import express from 'ultimate-express';
+import cluster from 'cluster';
+import os from 'os';
 
-const app = express();
+if (cluster.isPrimary) {
+    const numWorkers = process.env.NUM_WORKERS || os.cpus().length;
+    console.log(`Master cluster setting up ${numWorkers} workers...`);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    for (let i = 0; i < numWorkers; i++) {
+        cluster.fork();
+    }
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
-});
+    cluster.on('exit', (worker) => {
+        console.log(`Worker ${worker.process.pid} died, restarting`);
+        cluster.fork();
+    });
+} else {
+    import('./server.js');
+}
