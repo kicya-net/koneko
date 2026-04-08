@@ -1,0 +1,24 @@
+{
+  "name": "koneko",
+  "version": "1.0.0",
+  "description": "Server-side HTML pre-processor for multi-tenant web hosting.",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kicya-net/koneko.git"
+  },
+  "author": "Kicya",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/kicya-net/koneko/issues"
+  },
+  "homepage": "https://github.com/kicya-net/koneko#readme",
+  "dependencies": {
+    "dotenv": "^17.4.1",
+    "ultimate-express": "^2.0.17"
+  }
+}
