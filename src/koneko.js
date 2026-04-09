@@ -1,5 +1,5 @@
 import { IsolatePool } from './isolates.js';
-import { createApis } from './apis.js';
+import { createApis } from './api/index.js';
 import { compile } from './compile.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';

@@ -15,6 +15,20 @@ app.get('/', (req, res) => {
     res.send('Hello World');
 });
 
+app.get("/test", async (req, res) => {
+    try {
+        const r = await koneko.render('/test/assets/log.cat', {
+            siteId: '123',
+            siteRoot: '.',
+            request: req,
+        });
+        res.send(r);
+    } catch (e) {
+        console.error(e);
+        res.status(500).send(e.stack);
+    }
+})
+
 const listenTarget = process.env.SOCK_PATH ?? Number(process.env.PORT);
 
 app.listen(listenTarget, () => {
