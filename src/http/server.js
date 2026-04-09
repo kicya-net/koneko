@@ -1,14 +1,12 @@
 import express from 'ultimate-express';
 import './logs.js';
-import { Koneko } from './koneko.js';
+import { Koneko } from '../koneko.js';
 
 const app = express();
 const koneko = new Koneko({
     isolateCount: process.env.ISOLATES_PER_PROCESS ? Number(process.env.ISOLATES_PER_PROCESS) : 10,
     memoryLimit: process.env.ISOLATES_MEMORY_LIMIT_MB ? Number(process.env.ISOLATES_MEMORY_LIMIT_MB) : 64,
 });
-const worker = await koneko.acquireSite('123', '/path/to/site');
-console.log(worker);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
