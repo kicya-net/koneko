@@ -1,78 +1,70 @@
 import ivm from 'isolated-vm';
-import EventEmitter from 'events';
+import { EventEmitter } from 'tseep';
 
 let id = 0;
-const ISOLATES_PER_PROCESS = process.env.ISOLATES_PER_PROCESS ? Number(process.env.ISOLATES_PER_PROCESS) : 10;
-const ISOLATES_MEMORY_LIMIT_MB = process.env.ISOLATES_MEMORY_LIMIT_MB ? Number(process.env.ISOLATES_MEMORY_LIMIT_MB) : 64;
-
-export class KonekoIsolate extends EventEmitter {
-    constructor() {
+export class IsolatePool extends EventEmitter {
+    constructor(isolateCount, memoryLimit) {
         super();
-        this.id = id++;
-        this.isolate = new ivm.Isolate({
-            memoryLimit: ISOLATES_MEMORY_LIMIT_MB,
+        this.isolates = [];
+        this.isolateCount = isolateCount;
+        this.memoryLimit = memoryLimit;
+
+        this.init();
+    }
+
+    init() {
+        for (let i = 0; i < this.isolateCount; i++) {
+            this.createIsolate();
+        }
+    }
+
+    createIsolate() {
+        if (this.isolates.length >= this.isolateCount) {
+            throw new Error('Isolate pool is full');
+        }
+        const isolate = new ivm.Isolate({
+            memoryLimit: this.memoryLimit,
             onCatastrophicError: (error) => {
-                console.error(`Isolate ${this.id} crashed: ${error}`);
-                this.isolate.dispose();
-                this.isolate = null;
-                this.busy = false;
-                this.emit('crash');
+                console.error(`Isolate ${isolate._id} crashed: ${error}`);
+                isolate.dispose();
+                isolate._busy = true;
+                this.isolates = this.isolates.filter(i => i._id !== isolate._id);
+                this.createIsolate();
             },
         });
-        this.busy = false;
-        this.context = null;
-    }
-
-    async init() {
-        if(!this.isolate) throw new Error('Isolate is not initialized');
-        if(this.context) {
-            this.context.dispose();
-            this.context = null;
-        }
-        this.context = this.isolate.createContextSync();
-    }
-
-    async eval(code) {
-        if(!this.isolate) throw new Error('Isolate is not initialized');
-        if(!this.context) throw new Error('Context is not initialized');
-        if (this.busy) throw new Error('Isolate is busy');
-
-        this.busy = true;
-        try {
-            const result = await this.context.evalClosure(code);
-            return result;
-        } catch (error) {
-            throw error;
-        } finally {
-            this.busy = false;
-        }
-    }
-}
-
-export class KonekoIsolateManager {
-    constructor() {
-        this.isolates = [];
-
-        for (let i = 0; i < ISOLATES_PER_PROCESS; i++) {
-            this.createIsolate();
-        }
-    }
-
-    async createIsolate() {
-        const isolate = new KonekoIsolate();
+        isolate._id = id++;
+        isolate._busy = false;
         this.isolates.push(isolate);
-        isolate.on('crash', () => {
-            this.isolates = this.isolates.filter(i => i.id !== isolate.id);
-            this.createIsolate();
-        });
         return isolate;
     }
 
-    async getIsolate() {
-        const isolate = this.isolates.find(i => !i.busy);
-        if(!isolate) {
-            throw new Error('No available isolates');
+    async acquire(timeout = 5000) {
+        const free = this.isolates.find(i => !i._busy && !i.isDisposed);
+        if (free) {
+            free._busy = true;
+            return free;
         }
-        return isolate;
+
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                this.removeListener('release', onRelease);
+                reject(new Error('No isolates available'));
+            }, timeout);
+
+            const onRelease = () => {
+                const free = this.isolates.find(i => !i._busy && !i.isDisposed);
+                if (!free) return;
+                free._busy = true;
+                clearTimeout(timer);
+                this.removeListener('release', onRelease);
+                resolve(free);
+            };
+
+            this.on('release', onRelease);
+        });
+    }
+    release(isolate) {
+        isolate._busy = false;
+        this.emit('release', isolate);
     }
 }
