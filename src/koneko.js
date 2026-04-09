@@ -21,7 +21,8 @@ export class Koneko {
     constructor(options) {
         this.isolatePool = new IsolatePool(options.isolateCount, options.memoryLimit);
         this.sites = new Map(); // entryId -> SiteWorker
-        this.timeout = options.timeout || 5000;
+        this.wallTimeout = options.wallTimeout || 5000;
+        this.cpuTimeout = options.cpuTimeout || 25000000n; // ns (default 25ms)
     }
     async acquireSite(siteId, siteRoot) {
         for (const entry of this.sites.values()) {
@@ -64,9 +65,32 @@ export class Koneko {
 
             // Run
             const script = await site.isolate.i.compileScript(code);
-            const body = await script.run(site.context, {
-                timeout: this.timeout,
-                promise: true,
+            const cpuTimeBefore = site.isolate.i.cpuTime;
+            const body = await new Promise((resolve, reject) => {
+                const watchdog = setInterval(() => {
+                    if (site.isolate.isDisposed) {
+                        clearInterval(watchdog);
+                        return;
+                    }
+                    if (site.isolate.i.cpuTime - cpuTimeBefore > this.cpuTimeout) {
+                        clearInterval(watchdog);
+                        site.isolate.dispose();
+                        reject(new Error('CPU limit exceeded'));
+                    }
+                }, 5);
+    
+                script.run(site.context, {
+                    timeout: this.wallTimeout,
+                    promise: true
+                })
+                .then(result => {
+                    clearInterval(watchdog);
+                    resolve(result);
+                })
+                .catch(err => {
+                    clearInterval(watchdog);
+                    reject(err);
+                });
             });
 
             return body;

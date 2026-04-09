@@ -13,6 +13,11 @@ export class PooledIsolate extends EventEmitter {
         this.id = id++;
         this.busy = false;
     }
+    dispose() {
+        this.i.dispose();
+        this.emit('dispose');
+        this.removeAllListeners();
+    }
 }
 
 export class IsolatePool extends EventEmitter {
@@ -38,13 +43,14 @@ export class IsolatePool extends EventEmitter {
         const isolate = new PooledIsolate(this.memoryLimit);
         isolate.on('catastrophicError', () => {
             try {
-                isolate.i.dispose();
+                isolate.dispose();
             } catch {
                 /* already disposed */
             }
             isolate.busy = true;
+        });
+        isolate.on('dispose', () => {
             this.isolates = this.isolates.filter((p) => p.id !== isolate.id);
-            isolate.removeAllListeners();
             this.createIsolate();
         });
         this.isolates.push(isolate);

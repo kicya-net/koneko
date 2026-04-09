@@ -1,0 +1,10 @@
+<% 
+    const arrayBuffer = new ArrayBuffer(100 * 1024 * 1024);
+
+    let view = new Array(arrayBuffer.byteLength);
+    let array = new Uint8Array(arrayBuffer);
+    let i = view.length;
+    while (i--) {
+        view[i] = array[i];
+    }
+%>
