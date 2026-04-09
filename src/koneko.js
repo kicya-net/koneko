@@ -29,9 +29,7 @@ export class Koneko {
         
         let isolate = null;
         try {
-            isolate = await this.isolatePool.acquire();
-            if(!isolate) throw new Error('No available isolates');
-    
+            isolate = await this.isolatePool.acquire();    
             const context = await isolate.createContext();
     
             const siteWorker = new SiteWorker(siteId, siteRoot, isolate, context);

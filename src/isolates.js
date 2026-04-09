@@ -63,17 +63,17 @@ export class IsolatePool extends EventEmitter {
         return isolate;
     }
 
-    async acquire(timeout = 5000) {
-        const free = this.isolates.find((p) => !p.busy && !p.isDisposed);
-        if (free) {
-            free.busy = true;
-            return free;
-        }
-
+    acquire(timeout = 5000) {
         return new Promise((resolve, reject) => {
+            const free = this.isolates.find((p) => !p.busy && !p.isDisposed);
+            if (free) {
+                free.busy = true;
+                resolve(free);
+                return;
+            }
             const timer = setTimeout(() => {
                 this.removeListener('release', onRelease);
-                reject(new Error('No isolates available'));
+                reject(new Error('No available isolates'));
             }, timeout);
 
             const onRelease = () => {
@@ -88,8 +88,8 @@ export class IsolatePool extends EventEmitter {
             this.on('release', onRelease);
         });
     }
-    release(pooled) {
-        pooled.busy = false;
-        this.emit('release', pooled);
+    release(isolate) {
+        isolate.busy = false;
+        this.emit('release', isolate);
     }
 }
