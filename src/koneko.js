@@ -11,6 +11,8 @@ class SiteWorker {
         this.isolate = isolate;
         this.context = context;
         this.entryId = `${siteId}-${isolate.id}`;
+        this.lastUsed = Date.now();
+        this.active = false;
     }
     async init() {
         await createApis(this.context);
@@ -23,6 +25,33 @@ export class Koneko {
         this.sites = new Map(); // entryId -> SiteWorker
         this.wallTimeout = options.wallTimeout || 5000;
         this.cpuTimeout = options.cpuTimeout || 25000000n; // ns (default 25ms)
+        this.evictionInterval = setInterval(() => this.evict(), 30_000);
+        this.evictionInterval.unref();
+    }
+    evict() {
+        const now = Date.now();
+        const siteCounts = new Map();
+    
+        for (const entry of this.sites.values()) {
+            siteCounts.set(entry.siteId, (siteCounts.get(entry.siteId) || 0) + 1);
+        }
+    
+        for (const [entryId, entry] of this.sites) {
+            if (entry.active) continue;
+            if (entry.isolate.i.isDisposed) {
+                this.sites.delete(entryId);
+                continue;
+            }
+    
+            const count = siteCounts.get(entry.siteId);
+            const ttl = count > 1 ? 30_000 : 60_000; // 30s for multiple contexts, 60s for the last context
+    
+            if (now - entry.lastUsed > ttl) {
+                entry.context.release();
+                this.sites.delete(entryId);
+                siteCounts.set(entry.siteId, count - 1);
+            }
+        }
     }
     async acquireSite(siteId, siteRoot) {
         for (const entry of this.sites.values()) {
@@ -40,7 +69,7 @@ export class Koneko {
             const siteWorker = new SiteWorker(siteId, siteRoot, isolate, context);
             await siteWorker.init();
             this.sites.set(siteWorker.entryId, siteWorker);
-            isolate.on('catastrophicError', () => this.sites.delete(siteWorker.entryId));
+            isolate.on('dispose', () => this.sites.delete(siteWorker.entryId));
             return siteWorker;
         } catch (error) {
             if(isolate) this.isolatePool.release(isolate);
@@ -50,6 +79,7 @@ export class Koneko {
 
     async render(filePath, { siteId, siteRoot, request }) {
         const site = await this.acquireSite(siteId, siteRoot);
+        site.active = true;
 
         try {
             // Validate file path
@@ -78,6 +108,7 @@ export class Koneko {
                         reject(new Error('CPU limit exceeded'));
                     }
                 }, 5);
+                watchdog.unref();
     
                 script.run(site.context, {
                     timeout: this.wallTimeout,
@@ -94,9 +125,9 @@ export class Koneko {
             });
 
             return body;
-        } catch(e) {
-            throw e;
         } finally {
+            site.active = false;
+            site.lastUsed = Date.now();
             this.isolatePool.release(site.isolate);
         }
     }
