@@ -19,7 +19,7 @@
   "homepage": "https://github.com/kicya-net/koneko#readme",
   "dependencies": {
     "dotenv": "^17.4.1",
-    "isolated-vm": "^6.1.2",
+    "isolated-vm": "github:dimdenGD/isolated-vm",
     "ultimate-express": "^2.0.17"
   }
 }
