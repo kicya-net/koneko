@@ -1,5 +1,6 @@
 import { IsolatePool } from './isolates.js';
 import { createApis } from './apis.js';
+import { compile } from './compile.js';
 
 class SiteWorker {
     constructor(siteId, siteRoot, isolate, context) {
