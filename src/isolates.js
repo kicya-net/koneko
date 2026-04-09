@@ -21,16 +21,22 @@ export class KonekoIsolate extends EventEmitter {
         this.context = null;
     }
 
+    async init() {
+        if(!this.isolate) throw new Error('Isolate is not initialized');
+        if(this.context) {
+            this.context.dispose();
+            this.context = null;
+        }
+        this.context = this.isolate.createContextSync();
+    }
+
     async eval(code) {
-        if(!this.isolate) {
-            throw new Error('Isolate is not initialized');
-        }
-        if (this.busy) {
-            throw new Error('Isolate is busy');
-        }
+        if(!this.isolate) throw new Error('Isolate is not initialized');
+        if(!this.context) throw new Error('Context is not initialized');
+        if (this.busy) throw new Error('Isolate is busy');
+
         this.busy = true;
         try {
-            this.context = this.isolate.createContextSync();
             const result = this.context.evalClosureSync(code);
             return result;
         } catch (error) {
@@ -60,11 +66,11 @@ export class KonekoIsolateManager {
         return isolate;
     }
 
-    async eval(code) {
+    async getIsolate() {
         const isolate = this.isolates.find(i => !i.busy);
         if(!isolate) {
             throw new Error('No available isolates');
         }
-        return await isolate.eval(code);
+        return isolate;
     }
 }
