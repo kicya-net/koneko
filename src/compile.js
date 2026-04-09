@@ -12,11 +12,13 @@ function findClose(source, from) {
     while (i < source.length - 1) {
         const ch = source[i];
 
+        // jump over JS strings
         if (ch === '"' || ch === "'" || ch === '`') {
             i = skipString(source, i);
             continue;
         }
 
+        // jump over single-line comments
         if (ch === '/' && source[i + 1] === '/') {
             i = source.indexOf('\n', i);
             if (i === -1) return -1;
@@ -24,6 +26,7 @@ function findClose(source, from) {
             continue;
         }
 
+        // jump over multi-line comments
         if (ch === '/' && source[i + 1] === '*') {
             i = source.indexOf('*/', i + 2);
             if (i === -1) return -1;
@@ -31,6 +34,7 @@ function findClose(source, from) {
             continue;
         }
 
+        // find closing tag
         if (ch === '%' && source[i + 1] === '>') return i;
         i++;
     }
