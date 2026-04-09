@@ -2,6 +2,31 @@ import ivm from 'isolated-vm';
 import { EventEmitter } from 'tseep';
 
 let id = 0;
+
+export class PooledIsolate extends EventEmitter {
+    constructor() {
+        super();
+        this.isolate = new ivm.Isolate({
+            memoryLimit: this.memoryLimit,
+            onCatastrophicError: (error) => this.emit('catastrophicError', error),
+        });
+        this.id = id++;
+        this.busy = false;
+    }
+
+    get isDisposed() {
+        return this.isolate.isDisposed;
+    }
+
+    createContext() {
+        return this.isolate.createContext(...arguments);
+    }
+
+    dispose() {
+        return this.isolate.dispose();
+    }
+}
+
 export class IsolatePool extends EventEmitter {
     constructor(isolateCount, memoryLimit) {
         super();
@@ -22,26 +47,26 @@ export class IsolatePool extends EventEmitter {
         if (this.isolates.length >= this.isolateCount) {
             throw new Error('Isolate pool is full');
         }
-        const isolate = new ivm.Isolate({
-            memoryLimit: this.memoryLimit,
-            onCatastrophicError: (error) => {
-                console.error(`Isolate ${isolate._id} crashed: ${error}`);
-                isolate.dispose();
-                isolate._busy = true;
-                this.isolates = this.isolates.filter(i => i._id !== isolate._id);
-                this.createIsolate();
-            },
+        const isolate = new PooledIsolate();
+        isolate.on('catastrophicError', () => {
+            try {
+                isolate.isolate.dispose();
+            } catch {
+                /* already disposed */
+            }
+            isolate.busy = true;
+            this.isolates = this.isolates.filter((p) => p.id !== isolate.id);
+            isolate.removeAllListeners();
+            this.createIsolate();
         });
-        isolate._id = id++;
-        isolate._busy = false;
         this.isolates.push(isolate);
         return isolate;
     }
 
     async acquire(timeout = 5000) {
-        const free = this.isolates.find(i => !i._busy && !i.isDisposed);
+        const free = this.isolates.find((p) => !p.busy && !p.isDisposed);
         if (free) {
-            free._busy = true;
+            free.busy = true;
             return free;
         }
 
@@ -52,19 +77,19 @@ export class IsolatePool extends EventEmitter {
             }, timeout);
 
             const onRelease = () => {
-                const free = this.isolates.find(i => !i._busy && !i.isDisposed);
-                if (!free) return;
-                free._busy = true;
+                const found = this.isolates.find((p) => !p.busy && !p.isDisposed);
+                if (!found) return;
+                found.busy = true;
                 clearTimeout(timer);
                 this.removeListener('release', onRelease);
-                resolve(free);
+                resolve(found);
             };
 
             this.on('release', onRelease);
         });
     }
-    release(isolate) {
-        isolate._busy = false;
-        this.emit('release', isolate);
+    release(pooled) {
+        pooled.busy = false;
+        this.emit('release', pooled);
     }
 }
