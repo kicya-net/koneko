@@ -21,7 +21,7 @@ export class Koneko {
     }
     async acquireSite(siteId, siteRoot) {
         for (const entry of this.sites.values()) {
-            if (entry.siteId === siteId && !entry.isolate.busy && !entry.isolate.isDisposed) {
+            if (entry.siteId === siteId && !entry.isolate.busy && !entry.isolate.i.isDisposed) {
               entry.isolate.busy = true;
               return entry;
             }
@@ -35,6 +35,7 @@ export class Koneko {
             const siteWorker = new SiteWorker(siteId, siteRoot, isolate, context);
             await siteWorker.init();
             this.sites.set(siteWorker.entryId, siteWorker);
+            isolate.on('catastrophicError', () => this.sites.delete(siteWorker.entryId));
             return siteWorker;
         } catch (error) {
             if(isolate) this.isolatePool.release(isolate);

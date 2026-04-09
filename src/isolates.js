@@ -4,26 +4,14 @@ import { EventEmitter } from 'tseep';
 let id = 0;
 
 export class PooledIsolate extends EventEmitter {
-    constructor() {
+    constructor(memoryLimit) {
         super();
-        this.isolate = new ivm.Isolate({
-            memoryLimit: this.memoryLimit,
+        this.i = new ivm.Isolate({
+            memoryLimit: memoryLimit,
             onCatastrophicError: (error) => this.emit('catastrophicError', error),
         });
         this.id = id++;
         this.busy = false;
-    }
-
-    get isDisposed() {
-        return this.isolate.isDisposed;
-    }
-
-    createContext() {
-        return this.isolate.createContext(...arguments);
-    }
-
-    dispose() {
-        return this.isolate.dispose();
     }
 }
 
@@ -47,10 +35,10 @@ export class IsolatePool extends EventEmitter {
         if (this.isolates.length >= this.isolateCount) {
             throw new Error('Isolate pool is full');
         }
-        const isolate = new PooledIsolate();
+        const isolate = new PooledIsolate(this.memoryLimit);
         isolate.on('catastrophicError', () => {
             try {
-                isolate.isolate.dispose();
+                isolate.i.dispose();
             } catch {
                 /* already disposed */
             }
@@ -65,7 +53,7 @@ export class IsolatePool extends EventEmitter {
 
     acquire(timeout = 5000) {
         return new Promise((resolve, reject) => {
-            const free = this.isolates.find((p) => !p.busy && !p.isDisposed);
+            const free = this.isolates.find((p) => !p.busy && !p.i.isDisposed);
             if (free) {
                 free.busy = true;
                 resolve(free);
@@ -77,7 +65,7 @@ export class IsolatePool extends EventEmitter {
             }, timeout);
 
             const onRelease = () => {
-                const found = this.isolates.find((p) => !p.busy && !p.isDisposed);
+                const found = this.isolates.find((p) => !p.busy && !p.i.isDisposed);
                 if (!found) return;
                 found.busy = true;
                 clearTimeout(timer);
