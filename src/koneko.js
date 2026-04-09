@@ -15,7 +15,7 @@ class SiteWorker {
         this.active = false;
     }
     async init() {
-        await createApis(this.context);
+        await createApis(this);
     }
 }
 

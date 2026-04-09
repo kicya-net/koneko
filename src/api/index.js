@@ -1,6 +1,6 @@
 import { buildApi } from './utils.js';
-import consoleDefinitions from './console.js';
+import buildConsoleApi from './console.js';
 
-export async function createApis(context) {
-    await context.evalClosure(...buildApi(consoleDefinitions), { arguments: { reference: true } });
+export async function createApis(siteWorker) {
+    await siteWorker.context.evalClosure(...buildApi(buildConsoleApi(siteWorker)), { arguments: { reference: true } });
 }
