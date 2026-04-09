@@ -71,7 +71,6 @@ export class Koneko {
 
             return body;
         } catch(e) {
-            console.error(e);
             throw e;
         } finally {
             this.isolatePool.release(site.isolate);

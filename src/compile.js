@@ -41,6 +41,32 @@ function findClose(source, from) {
     return -1;
 }
 
+function stripLineComments(code) {
+    let out = '';
+    let i = 0;
+    while (i < code.length) {
+        const ch = code[i];
+
+        if (ch === '"' || ch === "'" || ch === '`') {
+            const start = i;
+            i = skipString(code, i);
+            out += code.slice(start, i);
+            continue;
+        }
+
+        if (ch === '/' && code[i + 1] === '/') {
+            const nl = code.indexOf('\n', i);
+            if (nl === -1) break;
+            i = nl; // keep the newline itself
+            continue;
+        }
+
+        out += ch;
+        i++;
+    }
+    return out;
+}
+
 function skipString(source, i) {
     const quote = source[i++];
     while (i < source.length) {
@@ -79,10 +105,10 @@ export function compile(source) {
         const inner = source.slice(tagStart + 2, tagEnd);
         if(inner[0] === '=') {
             // <%= expr %> - escaped output
-            out += `__k.push(escapeHtml(${inner.slice(1).trim()}));\n`;
+            out += `__k.push(escapeHtml(${stripLineComments(inner.slice(1).trim())}));\n`;
         } else if (inner[0] === '-') {
             // <%- expr %> - raw output
-            out += `__k.push(${inner.slice(1).trim()});\n`;
+            out += `__k.push(${stripLineComments(inner.slice(1).trim())});\n`;
           } else {
             // <% code %>
             out += inner.trim() + '\n';
