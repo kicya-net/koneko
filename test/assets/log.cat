@@ -1,1 +1,1 @@
-<% console.wa(console.wa.toString()); %> 
+<% console.log(console.log.toString()); %> 

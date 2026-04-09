@@ -1,17 +1,6 @@
 import { buildApi } from './utils.js';
+import consoleDefinitions from './console.js';
 
 export async function createApis(context) {
-    const definitions = {
-        'console': {
-            wa: {
-                args: '...args',
-                handler: (...args) => console.log(...args),
-            },
-        },
-    };
-
-    await context.evalClosure(
-        ...buildApi(definitions),
-        { arguments: { reference: true } }
-    );
+    await context.evalClosure(...buildApi(consoleDefinitions), { arguments: { reference: true } });
 }
