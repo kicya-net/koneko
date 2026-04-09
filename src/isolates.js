@@ -2,13 +2,15 @@ import ivm from 'isolated-vm';
 import EventEmitter from 'events';
 
 let id = 0;
+const ISOLATES_PER_PROCESS = process.env.ISOLATES_PER_PROCESS ? Number(process.env.ISOLATES_PER_PROCESS) : 10;
+const ISOLATES_MEMORY_LIMIT_MB = process.env.ISOLATES_MEMORY_LIMIT_MB ? Number(process.env.ISOLATES_MEMORY_LIMIT_MB) : 64;
 
 export class KonekoIsolate extends EventEmitter {
     constructor() {
         super();
         this.id = id++;
         this.isolate = new ivm.Isolate({
-            memoryLimit: process.env.ISOLATES_MEMORY_LIMIT_MB ? Number(process.env.ISOLATES_MEMORY_LIMIT_MB) : 64,
+            memoryLimit: ISOLATES_MEMORY_LIMIT_MB,
             onCatastrophicError: (error) => {
                 console.error(`Isolate ${this.id} crashed: ${error}`);
                 this.isolate.dispose();
@@ -37,7 +39,7 @@ export class KonekoIsolate extends EventEmitter {
 
         this.busy = true;
         try {
-            const result = this.context.evalClosureSync(code);
+            const result = await this.context.evalClosure(code);
             return result;
         } catch (error) {
             throw error;
@@ -51,7 +53,7 @@ export class KonekoIsolateManager {
     constructor() {
         this.isolates = [];
 
-        for (let i = 0; i < process.env.ISOLATES_PER_WORKER; i++) {
+        for (let i = 0; i < ISOLATES_PER_PROCESS; i++) {
             this.createIsolate();
         }
     }
