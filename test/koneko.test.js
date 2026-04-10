@@ -17,16 +17,19 @@ await new Promise(resolve => setTimeout(resolve, 500));
 
 describe('Koneko', () => {
     test('renders index.cat with expected HTML', async () => {
-        const out = await koneko.renderFile('index.cat', {
+        const { body, response } = await koneko.renderFile('index.cat', {
             siteId: 'test-site',
             siteRoot: assetsRoot,
             request: {},
         });
 
-        assert.match(out, /<h1>Hello, World!<\/h1>/);
-        assert.match(out, /<p>Test #0<\/p>/);
-        assert.match(out, /<p>Test #9<\/p>/);
-        assert.doesNotMatch(out, /Test #10/);
+        assert.equal(response.status, 200);
+        assert.equal(response.statusText, '');
+        assert.deepEqual(response.headers, {});
+        assert.match(body, /<h1>Hello, World!<\/h1>/);
+        assert.match(body, /<p>Test #0<\/p>/);
+        assert.match(body, /<p>Test #9<\/p>/);
+        assert.doesNotMatch(body, /Test #10/);
     });
 
     test('terminates while(true) loop', async () => {

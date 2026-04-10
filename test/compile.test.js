@@ -8,9 +8,14 @@ import { compile } from '../src/compile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// fake rendering function for testing
-async function render(source) {
-    const code = compile(source);
+async function render(source, compileOpts) {
+    const code = compile(source, compileOpts);
+    const r = await eval(code);
+    return r.body;
+}
+
+async function renderWithMeta(source, compileOpts) {
+    const code = compile(source, compileOpts);
     return await eval(code);
 }
 
@@ -18,7 +23,7 @@ describe('compile()', () => {
     test('wraps output in async IIFE with echo pipeline', () => {
         const out = compile('hi');
         assert.match(out, /^\(async \(\) => \{/);
-        assert.match(out, /return __k\.join\(""\);\n\}\)\(\)$/);
+        assert.match(out, /return \{ body: __k\.join\(""\), response: \{ status: response\.status, statusText: response\.statusText, headers: Object\.fromEntries\(__outHeaders\.entries\(\)\) \} \};\n\}\)\(\)$/);
     });
 
     test('plain HTML is pushed as a single quoted chunk', async () => {

@@ -1,5 +1,9 @@
 import { request, EnvHttpProxyAgent, interceptors } from 'undici';
+import fs from 'fs/promises';
 import { validateUrl } from './utils.js';
+
+const SANDBOX_HEADERS_CLASS = await fs.readFile(new URL('./sandbox/headers.js', import.meta.url), 'utf-8');
+const SANDBOX_RESPONSE_CLASS = await fs.readFile(new URL('./sandbox/response.js', import.meta.url), 'utf-8');
 
 const MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
 
@@ -87,45 +91,8 @@ export async function safeFetch(urlString, options = {}) {
 
 export default async function buildNetApi(siteWorker) {
     await siteWorker.context.evalClosure(`
-        class Response {
-            constructor(data) {
-                this.status = data.status;
-                this.statusText = data.statusText;
-                this.ok = data.ok;
-                this.headers = new Headers(data.headers);
-                this._body = data.body; // ArrayBuffer
-                this._bodyText = data.bodyText; // String
-                this.bodyUsed = false;
-            }
-            async arrayBuffer() {
-                this.bodyUsed = true;
-                return this._body;
-            }
-            async text() {
-                this.bodyUsed = true;
-                return this._bodyText;
-            }
-            async json() {
-                return JSON.parse(await this.text());
-            }
-            async blob() {
-                throw new Error('blob() is not supported');
-            }
-        }
-    
-        class Headers {
-            constructor(init) {
-                this._h = {};
-                for (const [k, v] of Object.entries(init || {})) {
-                    this._h[k.toLowerCase()] = v;
-                }
-            }
-            [Symbol.iterator]() { return Object.entries(this._h)[Symbol.iterator](); }
-            get(name) { return this._h[name.toLowerCase()] ?? null; }
-            has(name) { return name.toLowerCase() in this._h; }
-            entries() { return Object.entries(this._h); }
-            forEach(cb) { for (const [k, v] of this.entries()) cb(v, k, this); }
-        }
+        ${SANDBOX_HEADERS_CLASS}
+        ${SANDBOX_RESPONSE_CLASS}
     
         globalThis.fetch = async function(url, options) {
             const data = await $0.apply(undefined, [url, options || {}], {

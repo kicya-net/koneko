@@ -17,12 +17,16 @@ app.get('/', (req, res) => {
 
 app.get("/test", async (req, res) => {
     try {
-        const r = await koneko.render('/test/assets/log.cat', {
+        const { body, response } = await koneko.renderFile('test/assets/log.cat', {
             siteId: '123',
             siteRoot: '.',
             request: req,
         });
-        res.send(r);
+        res.status(response.status);
+        for (const [name, value] of Object.entries(response.headers)) {
+            res.setHeader(name, value);
+        }
+        res.send(body);
     } catch (e) {
         console.error(e);
         res.status(500).send(e.stack);

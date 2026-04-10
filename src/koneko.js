@@ -82,7 +82,7 @@ export class Koneko {
         site.active = true;
         try {
             // Compile
-            const code = compile(content);
+            const code = compile(content, { request });
 
             // Run
             const script = await site.isolate.i.compileScript(code);
@@ -103,7 +103,8 @@ export class Koneko {
     
                 script.run(site.context, {
                     timeout: this.wallTimeout,
-                    promise: true
+                    promise: true,
+                    copy: true,
                 })
                 .then(result => {
                     clearInterval(watchdog);
