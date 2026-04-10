@@ -49,7 +49,7 @@ describe('safeFetch', () => {
         });
     });
 
-    test('fetches a public HTTPS URL', async () => {
+    test('fetches a public HTTP URL', async () => {
         const res = await safeFetch('http://example.com/');
         assert.equal(res.ok, true);
         assert.equal(res.status, 200);
