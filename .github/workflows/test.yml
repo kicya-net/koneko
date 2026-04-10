@@ -16,8 +16,15 @@ jobs:
           node-version: "22"
           cache: npm
 
+      - uses: actions/cache@v4
+        id: deps-cache
+        with:
+          path: node_modules
+          key: deps-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install dependencies
-        run: npm install
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: npm ci
 
       - name: Run tests
         run: npm test
