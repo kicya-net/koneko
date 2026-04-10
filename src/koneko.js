@@ -77,20 +77,11 @@ export class Koneko {
         }
     }
 
-    async render(filePath, { siteId, siteRoot, request }) {
+    async render(content, { siteId, siteRoot, request }) {
         const site = await this.acquireSite(siteId, siteRoot);
         site.active = true;
-
         try {
-            // Validate file path
-            const fullSitePath = path.resolve(siteRoot);
-            const fullFilePath = path.join(fullSitePath, filePath);
-            if(!fullFilePath.startsWith(fullSitePath + path.sep)) {
-                throw new Error('Invalid file path');
-            }
-
-            // Read file content and compile
-            const content = await readFile(fullFilePath, 'utf8');
+            // Compile
             const code = compile(content);
 
             // Run
@@ -130,5 +121,17 @@ export class Koneko {
             site.lastUsed = Date.now();
             this.isolatePool.release(site.isolate);
         }
+    }
+
+    async renderFile(filePath, { siteId, siteRoot, request }) {
+        // Validate file path
+        const fullSitePath = path.resolve(siteRoot);
+        const fullFilePath = path.join(fullSitePath, filePath);
+        if(!fullFilePath.startsWith(fullSitePath + path.sep)) {
+            throw new Error('Invalid file path');
+        }
+
+        const content = await readFile(fullFilePath, 'utf-8');
+        return await this.render(content, { siteId, siteRoot, request });
     }
 }

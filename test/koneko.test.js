@@ -17,7 +17,7 @@ await new Promise(resolve => setTimeout(resolve, 500));
 
 describe('Koneko', () => {
     test('renders index.cat with expected HTML', async () => {
-        const out = await koneko.render('index.cat', {
+        const out = await koneko.renderFile('index.cat', {
             siteId: 'test-site',
             siteRoot: assetsRoot,
             request: {},
@@ -31,7 +31,7 @@ describe('Koneko', () => {
 
     test('terminates while(true) loop', async () => {
         await assert.rejects(async () => {
-            await koneko.render('while-true.cat', {
+            await koneko.renderFile('while-true.cat', {
                 siteId: 'test-site',
                 siteRoot: assetsRoot,
                 request: {},
@@ -43,7 +43,7 @@ describe('Koneko', () => {
 
     test('terminates memory limit', async () => {
         await assert.rejects(async () => {
-            await koneko.render('memory-limit.cat', {
+            await koneko.renderFile('memory-limit.cat', {
                 siteId: 'test-site',
                 siteRoot: assetsRoot,
                 request: {},
