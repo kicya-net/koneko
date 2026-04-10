@@ -9,3 +9,4 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 - NUM_PROCESSES: The number of processes to run. By default, it will use the number of CPU cores.
 - ISOLATES_PER_PROCESS: The number of isolates to run per process. By default, it will create 10 isolates per process.
 - HTTPS_PROXY: The HTTP(S) proxy to use for `fetch` requests.
+- KONEKO_SECRET: The secret to use for the Koneko API. If set, the server will require the `X-Koneko-Secret` header to be set.
