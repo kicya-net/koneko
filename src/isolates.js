@@ -90,15 +90,10 @@ export class IsolatePool {
         if(!isolate.busy) return;
         isolate.busy = false;
     
-        while (this.queue.length > 0) {
+        if (this.queue.length > 0 && !isolate.i.isDisposed) {
             const entry = this.queue.shift();
             clearTimeout(entry.timer);
-    
-            const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
-            if (free) {
-                entry.resolve(free);
-                return;
-            }
+            entry.resolve(isolate);
         }
     }
 }

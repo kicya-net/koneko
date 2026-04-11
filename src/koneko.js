@@ -44,7 +44,7 @@ export class Koneko {
     async acquireSite(siteId, siteRoot) {
         for (const entry of this.sites.values()) {
             if (entry.siteId === siteId && !entry.isolate.busy && !entry.isolate.i.isDisposed) {
-              return entry;
+                return entry;
             }
         }
 
