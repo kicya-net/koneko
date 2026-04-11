@@ -1,4 +1,5 @@
 import ivm from 'isolated-vm';
+import { LRUCache } from 'lru-cache';
 import { IsolatePool } from './isolates.js';
 import { compileTemplate } from './compile.js';
 import { SiteWorker } from './site.js';
@@ -10,7 +11,7 @@ export class Koneko {
     constructor(options) {
         this.isolatePool = new IsolatePool(options.isolateCount, options.memoryLimit);
         this.sites = new Map(); // entryId -> SiteWorker
-        this.compiledTemplateCache = new Map(); // siteId:filePath:mtime:size -> compiled template function source
+        this.compiledTemplateCache = new LRUCache({ max: 1000, ttl: 1000 * 60 * 60 * 5}); // siteId:filePath:mtime:size -> compiled template function source
         this.wallTimeout = options.wallTimeout || 5000;
         this.cpuTimeout = options.cpuTimeout || 25000000n; // ns (default 25ms)
         this.evictionInterval = setInterval(() => this.evict(), 30_000);
