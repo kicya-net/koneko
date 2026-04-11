@@ -1,7 +1,3 @@
-import fs from 'fs/promises';
-
-const SANDBOX_HEADERS_CLASS = await fs.readFile(new URL('./api/sandbox/headers.js', import.meta.url), 'utf-8');
-
 function quote(str) {
     return "'" + str
       .replace(/\\/g, '\\\\')
@@ -81,18 +77,11 @@ function skipString(source, i) {
     return i;
 }
 
-export function compile(source, options = {}) {
-    let out = '(async () => {\n';
-    out += SANDBOX_HEADERS_CLASS + '\n';
-
-    if (options.request) {
-        out += `const __incoming = JSON.parse(${quote(JSON.stringify(options.request))});\n`;
-        out += 'const request = { url: __incoming.url, method: __incoming.method, headers: new Headers(__incoming.headers) };\n';
-    }
-
+export function compileTemplate(source, fnName = '__template') {
+    let out = `globalThis.${fnName} = async function(__request) {\n`;
+    out += 'const request = { url: __request.url, method: __request.method, headers: new Headers(__request.headers), body: __request.body, query: __request.query, cookies: __request.cookies };\n';
     out += 'const __k = [];\n';
-    out += 'const __outHeaders = new Headers();\n';
-    out += 'const response = { status: 200, statusText: \'\', get headers() { return __outHeaders; } };\n';
+    out += 'const response = { status: 200, statusText: \'\', headers: new Headers() };\n';
     out += 'function echo(v) { __k.push(v); }\n';
     out += 'function escapeHtml(v) { if(v==null)return""; return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }\n';
     
@@ -128,6 +117,6 @@ export function compile(source, options = {}) {
         }
         i = tagEnd + 2;
     }
-    out += 'return { body: __k.join(""), response: { status: response.status, statusText: response.statusText, headers: Object.fromEntries(__outHeaders.entries()) } };\n})()';
+    out += 'return { body: __k.join(""), response: { status: response.status, statusText: response.statusText, headers: Object.fromEntries(response.headers.entries()) } };\n}';
     return out;
 }

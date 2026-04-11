@@ -16,6 +16,17 @@ const koneko = new Koneko({
 await new Promise(resolve => setTimeout(resolve, 500));
 
 describe('Koneko', () => {
+    test('renders code with expected HTML', async () => {
+        const { body, response } = await koneko.renderCode('<h1>Hello, World!</h1>', {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+        assert.equal(response.status, 200);
+        assert.equal(response.statusText, '');
+        assert.deepEqual(response.headers, {});
+        assert.match(body, /<h1>Hello, World!<\/h1>/);
+    });
     test('renders index.cat with expected HTML', async () => {
         const { body, response } = await koneko.renderFile('index.cat', {
             siteId: 'test-site',

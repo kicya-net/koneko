@@ -1,7 +1,9 @@
+import ivm from 'isolated-vm';
 import { IsolatePool } from './isolates.js';
 import { createApis } from './api/index.js';
-import { compile } from './compile.js';
-import { readFile } from 'node:fs/promises';
+import { compileTemplate } from './compile.js';
+import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
 
 class SiteWorker {
@@ -10,7 +12,8 @@ class SiteWorker {
         this.siteRoot = siteRoot;
         this.isolate = isolate;
         this.context = context;
-        this.entryId = `${siteId}-${isolate.id}`;
+        this.entryId = `${siteId}:${isolate.id}`;
+        this.compiledCodeCache = new Map(); // siteId:filePath:mtime:size -> compiled code
         this.lastUsed = Date.now();
         this.active = false;
     }
@@ -23,6 +26,7 @@ export class Koneko {
     constructor(options) {
         this.isolatePool = new IsolatePool(options.isolateCount, options.memoryLimit);
         this.sites = new Map(); // entryId -> SiteWorker
+        this.compiledTemplateCache = new Map(); // siteId:filePath:mtime:size -> compiled template function source
         this.wallTimeout = options.wallTimeout || 5000;
         this.cpuTimeout = options.cpuTimeout || 25000000n; // ns (default 25ms)
         this.evictionInterval = setInterval(() => this.evict(), 30_000);
@@ -77,26 +81,22 @@ export class Koneko {
         }
     }
 
-    assembleRequest(expressRequest) {
+    assembleRequest(expressRequest = {}) {
+        const headers = Object.fromEntries(Object.entries(expressRequest.headers ?? {}).map(([key, value]) => [key.toLowerCase(), value]));
+
         return {
             url: expressRequest.url,
             method: expressRequest.method,
-            headers: Object.fromEntries(Object.entries(expressRequest.headers).map(([key, value]) => [key.toLowerCase(), value])),
+            headers,
         };
     }
 
-    async render(content, { siteId, siteRoot, request }) {
-        const site = await this.acquireSite(siteId, siteRoot);
+    async runTemplate(fnName, site, request) {
         site.active = true;
         try {
-            // Compile
             const req = this.assembleRequest(request);
-            const code = compile(content, { request: req });
-
-            // Run
-            const script = await site.isolate.i.compileScript(code);
-            const cpuTimeBefore = site.isolate.i.cpuTime;
-            const body = await new Promise((resolve, reject) => {
+            const body = await new Promise(async (resolve, reject) => {
+                const cpuTimeBefore = site.isolate.i.cpuTime;
                 const watchdog = setInterval(() => {
                     if (site.isolate.i.isDisposed) {
                         clearInterval(watchdog);
@@ -108,21 +108,19 @@ export class Koneko {
                         reject(new Error('CPU limit exceeded'));
                     }
                 }, 5);
-                watchdog.unref();
-    
-                script.run(site.context, {
-                    timeout: this.wallTimeout,
-                    promise: true,
-                    copy: true,
-                })
-                .then(result => {
+
+                try {    
+                    const result = await site.context.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(req).copyInto()], {
+                        timeout: this.wallTimeout,
+                        result: { promise: true, copy: true },
+                        arguments: { reference: false },
+                    })
                     clearInterval(watchdog);
                     resolve(result);
-                })
-                .catch(err => {
+                } catch (err) {
                     clearInterval(watchdog);
                     reject(err);
-                });
+                }
             });
 
             return body;
@@ -136,6 +134,14 @@ export class Koneko {
         }
     }
 
+    async renderCode(code, { siteId, siteRoot, request }) {
+        const site = await this.acquireSite(siteId, siteRoot);
+        const templateCode = compileTemplate(code, '__template');
+        const fn = await site.isolate.i.compileScript(templateCode);
+        await fn.run(site.context);
+        return await this.runTemplate('__template', site, request);
+    }
+
     async renderFile(filePath, { siteId, siteRoot, request }) {
         // Validate file path
         const fullSitePath = path.resolve(siteRoot);
@@ -144,7 +150,27 @@ export class Koneko {
             throw new Error('Invalid file path');
         }
 
-        const content = await readFile(fullFilePath, 'utf-8');
-        return await this.render(content, { siteId, siteRoot, request });
+        let stat = fsSync.statSync(fullFilePath);
+        if(!stat.isFile()) {
+            throw new Error('Not a file: ' + filePath);
+        }
+        const templateKey = `${siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
+        const fnName = `__t_${templateKey.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        let template = this.compiledTemplateCache.get(templateKey);
+        if(!template) {
+            template = await fs.readFile(fullFilePath, 'utf-8');
+            template = compileTemplate(template, fnName);
+            this.compiledTemplateCache.set(templateKey, template);
+        }
+
+        const site = await this.acquireSite(siteId, siteRoot);
+        let fn = site.compiledCodeCache.get(fnName);
+        if(!fn) {
+            fn = await site.isolate.i.compileScript(template);
+            await fn.run(site.context);
+            site.compiledCodeCache.set(fnName, fn);
+        }
+
+        return await this.runTemplate(fnName, site, request);
     }
 }

@@ -93,6 +93,7 @@ export default async function buildNetApi(siteWorker) {
     await siteWorker.context.evalClosure(`
         ${SANDBOX_HEADERS_CLASS}
         ${SANDBOX_RESPONSE_CLASS}
+        globalThis.Headers = Headers;
     
         globalThis.fetch = async function(url, options) {
             const data = await $0.apply(undefined, [url, options || {}], {

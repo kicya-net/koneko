@@ -4,26 +4,21 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
 
-import { compile } from '../src/compile.js';
+import { compileTemplate } from '../src/compile.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-async function render(source, compileOpts) {
-    const code = compile(source, compileOpts);
-    const r = await eval(code);
-    return r.body;
-}
-
-async function renderWithMeta(source, compileOpts) {
-    const code = compile(source, compileOpts);
-    return await eval(code);
+async function render(source, request = {}) {
+    const code = compileTemplate(source);
+    const fn = eval(`${code}; __template(${JSON.stringify(request)})`);
+    return fn.body;
 }
 
 describe('compile()', () => {
     test('wraps output in async IIFE with echo pipeline', () => {
-        const out = compile('hi');
-        assert.match(out, /^\(async \(\) => \{/);
-        assert.match(out, /return \{ body: __k\.join\(""\), response: \{ status: response\.status, statusText: response\.statusText, headers: Object\.fromEntries\(__outHeaders\.entries\(\)\) \} \};\n\}\)\(\)$/);
+        const out = compileTemplate('hi');
+        assert.match(out, /^\(async \(__request\) => \{/);
+        assert.match(out, /return \{ body: __k\.join\(""\), response: \{ status: response\.status, statusText: response\.statusText, headers: Object\.fromEntries\(response\.headers\.entries\(\)\) \} \};\n\}\)$/);
     });
 
     test('plain HTML is pushed as a single quoted chunk', async () => {
@@ -65,7 +60,7 @@ describe('compile()', () => {
     });
 
     test('unclosed <% throws', () => {
-        assert.throws(() => compile('before <% no close'), {
+        assert.throws(() => compileTemplate('before <% no close'), {
             message: /Unclosed <% tag at \d+/,
         });
     });
