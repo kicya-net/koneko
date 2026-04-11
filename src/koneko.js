@@ -67,18 +67,14 @@ export class Koneko {
     }
 
     async runTemplate(fnName, site, request) {
-        try {
-            const req = this.assembleRequest(request);
-            const body = await site.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(req).copyInto()], {
-                timeout: this.wallTimeout,
-                result: { promise: true, copy: true },
-                arguments: { reference: false },
-            });
+        const req = this.assembleRequest(request);
+        const body = await site.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(req).copyInto()], {
+            timeout: this.wallTimeout,
+            result: { promise: true, copy: true },
+            arguments: { reference: false },
+        });
 
-            return body;
-        } finally {
-            this.isolatePool.release(site.isolate);
-        }
+        return body;
     }
 
     async renderCode(code, { siteId, siteRoot, request }) {
