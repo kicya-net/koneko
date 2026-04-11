@@ -20,10 +20,10 @@ export class PooledIsolate extends EventEmitter {
     }
 }
 
-export class IsolatePool extends EventEmitter {
+export class IsolatePool {
     constructor(isolateCount, memoryLimit) {
-        super();
         this.isolates = [];
+        this.queue = [];
         this.isolateCount = isolateCount;
         this.memoryLimit = memoryLimit;
 
@@ -58,32 +58,38 @@ export class IsolatePool extends EventEmitter {
     }
 
     acquire(timeout = 5000) {
+        const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
+        if (free) {
+            free.busy = true;
+            return Promise.resolve(free);
+        }
+    
         return new Promise((resolve, reject) => {
-            const free = this.isolates.find((p) => !p.busy && !p.i.isDisposed);
-            if (free) {
-                free.busy = true;
-                resolve(free);
-                return;
-            }
-            const timer = setTimeout(() => {
-                this.removeListener('release', onRelease);
-                reject(new Error('No available isolates'));
-            }, timeout);
-
-            const onRelease = () => {
-                const found = this.isolates.find((p) => !p.busy && !p.i.isDisposed);
-                if (!found) return;
-                found.busy = true;
-                clearTimeout(timer);
-                this.removeListener('release', onRelease);
-                resolve(found);
+            const entry = {
+                resolve,
+                timer: setTimeout(() => {
+                    const idx = this.queue.indexOf(entry);
+                    if (idx !== -1) this.queue.splice(idx, 1);
+                    reject(new Error('No available isolates'));
+                }, timeout),
             };
-
-            this.on('release', onRelease);
+            this.queue.push(entry);
         });
     }
+    
     release(isolate) {
         isolate.busy = false;
-        this.emit('release', isolate);
+    
+        while (this.queue.length > 0) {
+            const entry = this.queue.shift();
+            clearTimeout(entry.timer);
+    
+            const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
+            if (free) {
+                free.busy = true;
+                entry.resolve(free);
+                return;
+            }
+        }
     }
 }

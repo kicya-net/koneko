@@ -1,6 +1,7 @@
 import express from 'ultimate-express';
 import './logs.js';
 import { Koneko } from '../koneko.js';
+import fileUpload from 'express-fileupload';
 
 const app = express();
 const koneko = new Koneko({
@@ -8,9 +9,18 @@ const koneko = new Koneko({
     memoryLimit: process.env.ISOLATES_MEMORY_LIMIT_MB ? Number(process.env.ISOLATES_MEMORY_LIMIT_MB) : 64,
 });
 const SECRET = process.env.KONEKO_SECRET;
+const MAX_FILE_SIZE_MB = process.env.MAX_FILE_SIZE_MB ? Number(process.env.MAX_FILE_SIZE_MB) : 20;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: MAX_FILE_SIZE_MB * 1024 * 1024 }));
+app.use(express.urlencoded({ extended: false, limit: MAX_FILE_SIZE_MB * 1024 * 1024 }));
+app.use(fileUpload({
+    limits: { fileSize: MAX_FILE_SIZE_MB * 1024 * 1024 },
+    abortOnLimit: true,
+    limitHandler: (req, res, next) => {
+        return res.status(413).send(generateError(413, 'File too large'));
+    }
+}));
+
 
 function generateError(status, message) {
     return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><p>${message}</p><hr><i>Koneko</i></body></html>`;
@@ -21,7 +31,7 @@ app.use(async (req, res) => {
 
     const siteId = req.get('X-Koneko-Site-Id') ?? req.hostname;
     const siteRoot = req.get('X-Koneko-Site-Root');
-    const filePath = req.get('X-Koneko-File-Path');
+    const filePath = req.get('X-Koneko-File-Path') ?? req.path;
     const request = req;
 
     if(!siteId) return res.status(500).send(generateError(500, 'Site ID not set'));
@@ -30,12 +40,13 @@ app.use(async (req, res) => {
     
     try {
         const body = await koneko.renderFile(filePath, { siteId, siteRoot, request });
-        for(const [key, value] of body.response.headers) {
-            res.set(key, value);
+        for(const name in body.response.headers) {
+            res.set(name, body.response.headers[name]);
         }
         res.status(body.response.status);
         res.send(body.body);
     } catch (err) {
+        console.error(err);
         return res.status(500).send(generateError(500, err.message));
     }
 });

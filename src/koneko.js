@@ -77,12 +77,21 @@ export class Koneko {
         }
     }
 
+    assembleRequest(expressRequest) {
+        return {
+            url: expressRequest.url,
+            method: expressRequest.method,
+            headers: Object.fromEntries(Object.entries(expressRequest.headers).map(([key, value]) => [key.toLowerCase(), value])),
+        };
+    }
+
     async render(content, { siteId, siteRoot, request }) {
         const site = await this.acquireSite(siteId, siteRoot);
         site.active = true;
         try {
             // Compile
-            const code = compile(content, { request });
+            const req = this.assembleRequest(request);
+            const code = compile(content, { request: req });
 
             // Run
             const script = await site.isolate.i.compileScript(code);
