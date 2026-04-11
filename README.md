@@ -14,12 +14,24 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 - [ ] Tests
 - - [ ] Request
 - - [ ] Response
-- [ ] Serve CLI
-- [ ] Express middleware
+- [x] Serve CLI
+- [x] Express middleware
 - [ ] Documentation
+
+## CLI
+
+Help:
+```bash
+node src/http/cli.js help
+```
+Serve a folder:
+```bash
+node src/http/cli.js serve ./public --clean --isolates 40 --memory 64 --cpu-timeout 25 --wall-timeout 5000 --file-size 20
+```
 
 ## .env
 
+- HOST: The host to run the server on.
 - PORT: The port to run the server on.
 - SOCK_PATH: The path to the socket file. If set, the server will listen on the socket file instead of the port.
 - NUM_PROCESSES: The number of processes to run. By default, it will use the number of CPU cores.

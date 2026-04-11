@@ -22,7 +22,7 @@ import { buildRequest, createBodyParser, generateError } from './utils.js';
 const app = express();
 const koneko = new Koneko({
     isolateCount: process.env.ISOLATES_PER_PROCESS ? Number(process.env.ISOLATES_PER_PROCESS) : 10,
-    memoryLimit: process.env.ISOLATES_MEMORY_LIMIT_MB ? Number(process.env.ISOLATES_MEMORY_LIMIT_MB) : 64,
+    memoryLimit: process.env.ISOLATE_MEMORY_LIMIT_MB ? Number(process.env.ISOLATE_MEMORY_LIMIT_MB) : 64,
 });
 const SECRET = process.env.KONEKO_SECRET;
 const MAX_FILE_SIZE_MB = process.env.MAX_FILE_SIZE_MB ? Number(process.env.MAX_FILE_SIZE_MB) : 20;
@@ -59,8 +59,22 @@ app.use((err, req, res, next) => {
     res.status(500).send(generateError(500, 'Internal server error'));
 });
 
-const listenTarget = process.env.SOCK_PATH ?? Number(process.env.PORT);
-
-app.listen(listenTarget, () => {
-    console.log(`Server is running on ${listenTarget}`);
-});
+const sockPath = process.env.SOCK_PATH;
+if (sockPath) {
+    app.listen(sockPath, () => {
+        console.log(`Server is running on ${sockPath}`);
+    });
+} else {
+    const port = Number(process.env.PORT);
+    const host = process.env.HOST;
+    const onListen = () => {
+        console.log(
+            host ? `Server is running on ${host}:${port}` : `Server is running on ${port}`,
+        );
+    };
+    if (host) {
+        app.listen(port, host, onListen);
+    } else {
+        app.listen(port, onListen);
+    }
+}
