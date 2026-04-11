@@ -91,36 +91,41 @@ export class Koneko {
         };
     }
 
+    async runWithWatchdog(site, fn) {
+        const cpuTimeBefore = site.isolate.i.cpuTime;
+        let cpuLimited = false;
+        const watchdog = setInterval(() => {
+            if (site.isolate.i.isDisposed) {
+                clearInterval(watchdog);
+                return;
+            }
+            if (site.isolate.i.cpuTime - cpuTimeBefore > this.cpuTimeout) {
+                cpuLimited = true;
+                clearInterval(watchdog);
+                site.isolate.dispose();
+            }
+        }, 5);
+
+        try {
+            return await fn();
+        } catch (err) {
+            if (cpuLimited) throw new Error('CPU limit exceeded');
+            throw err;
+        } finally {
+            clearInterval(watchdog);
+        }
+    }
+
     async runTemplate(fnName, site, request) {
         site.active = true;
         try {
             const req = this.assembleRequest(request);
-            const body = await new Promise(async (resolve, reject) => {
-                const cpuTimeBefore = site.isolate.i.cpuTime;
-                const watchdog = setInterval(() => {
-                    if (site.isolate.i.isDisposed) {
-                        clearInterval(watchdog);
-                        return;
-                    }
-                    if (site.isolate.i.cpuTime - cpuTimeBefore > this.cpuTimeout) {
-                        clearInterval(watchdog);
-                        site.isolate.dispose();
-                        reject(new Error('CPU limit exceeded'));
-                    }
-                }, 5);
-
-                try {    
-                    const result = await site.context.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(req).copyInto()], {
-                        timeout: this.wallTimeout,
-                        result: { promise: true, copy: true },
-                        arguments: { reference: false },
-                    })
-                    clearInterval(watchdog);
-                    resolve(result);
-                } catch (err) {
-                    clearInterval(watchdog);
-                    reject(err);
-                }
+            const body = await this.runWithWatchdog(site, async () => {
+                return await site.context.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(req).copyInto()], {
+                    timeout: this.wallTimeout,
+                    result: { promise: true, copy: true },
+                    arguments: { reference: false },
+                });
             });
 
             return body;
@@ -138,7 +143,9 @@ export class Koneko {
         const site = await this.acquireSite(siteId, siteRoot);
         const templateCode = compileTemplate(code, '__template');
         const fn = await site.isolate.i.compileScript(templateCode);
-        await fn.run(site.context);
+        await this.runWithWatchdog(site, async () => {
+            return await fn.run(site.context);
+        });
         return await this.runTemplate('__template', site, request);
     }
 
@@ -167,7 +174,9 @@ export class Koneko {
         let fn = site.compiledCodeCache.get(fnName);
         if(!fn) {
             fn = await site.isolate.i.compileScript(template);
-            await fn.run(site.context);
+            await this.runWithWatchdog(site, async () => {
+                return await fn.run(site.context);
+            });
             site.compiledCodeCache.set(fnName, fn);
         }
 

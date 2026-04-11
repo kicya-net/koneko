@@ -43,6 +43,30 @@ describe('Koneko', () => {
         assert.doesNotMatch(body, /Test #10/);
     });
 
+    test('concurrent renderFile for the same file completes for all requests', async () => {
+        const concurrent = new Koneko({
+            isolateCount: 4,
+            memoryLimit: 32,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const n = 12;
+        const results = await Promise.all(
+            Array.from({ length: n }, () =>
+                concurrent.renderFile('index.cat', {
+                    siteId: 'test-site',
+                    siteRoot: assetsRoot,
+                    request: {},
+                }),
+            ),
+        );
+
+        assert.equal(results.length, n);
+        for (const { body } of results) {
+            assert.match(body, /<h1>Hello, World!<\/h1>/);
+        }
+    });
+
     test('terminates while(true) loop', async () => {
         await assert.rejects(async () => {
             await koneko.renderFile('while-true.cat', {
