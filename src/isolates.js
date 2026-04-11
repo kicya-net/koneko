@@ -74,6 +74,11 @@ export class IsolatePool {
                 timer: setTimeout(() => {
                     const idx = this.queue.indexOf(entry);
                     if (idx !== -1) this.queue.splice(idx, 1);
+                    const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
+                    if (free) {
+                        entry.resolve(free);
+                        return;
+                    }
                     reject(new Error('No available isolates'));
                 }, timeout),
             };
