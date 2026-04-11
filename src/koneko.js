@@ -162,7 +162,7 @@ export class Koneko {
             throw new Error('Not a file: ' + filePath);
         }
         const templateKey = `${siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
-        const fnName = `__t_${templateKey.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const fnName = `__t_${`${siteId}_${filePath}`.replace(/[^a-zA-Z0-9]/g, '_')}`;
         let template = this.compiledTemplateCache.get(templateKey);
         if(!template) {
             template = await fs.readFile(fullFilePath, 'utf-8');
