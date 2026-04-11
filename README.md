@@ -30,4 +30,4 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 
 ## License
 
-Koneko is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details. Copyright (c) 2026 Kicya LLC.
+Koneko is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details. Copyright (c) 2026 Kicya.
