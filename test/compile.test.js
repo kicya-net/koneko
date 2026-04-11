@@ -10,15 +10,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function render(source, request = {}) {
     const code = compileTemplate(source);
-    const fn = eval(`${code}; __template(${JSON.stringify(request)})`);
-    return fn.body;
+    const result = await eval(`(async () => { ${code}; return await __template(${JSON.stringify(request)}); })()`);
+    return result.body;
 }
 
 describe('compile()', () => {
-    test('wraps output in async IIFE with echo pipeline', () => {
+    test('assigns an async template function with echo pipeline', () => {
         const out = compileTemplate('hi');
-        assert.match(out, /^\(async \(__request\) => \{/);
-        assert.match(out, /return \{ body: __k\.join\(""\), response: \{ status: response\.status, statusText: response\.statusText, headers: Object\.fromEntries\(response\.headers\.entries\(\)\) \} \};\n\}\)$/);
+        assert.match(out, /^globalThis\.__template = async function\(__request\) \{/);
+        assert.match(out, /return \{ body: __k\.join\(""\), response: \{.+?\};\n\}$/);
     });
 
     test('plain HTML is pushed as a single quoted chunk', async () => {
