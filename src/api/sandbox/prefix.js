@@ -1,5 +1,6 @@
 const request = { 
     url: __request.url,
+    path: __request.path,
     method: __request.method,
     headers: new Headers(__request.headers),
     body: __request.body,

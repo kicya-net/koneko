@@ -16,12 +16,14 @@ limitations under the License.
 import ivm from 'isolated-vm';
 import fileUpload from 'express-fileupload';
 import express from 'ultimate-express';
+import cookie from 'cookie';
+
 
 export function generateError(status, message) {
     return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><p>${message}</p><hr><i>Koneko</i></body></html>`;
 }
 
-export function createBodyParser(limit) {
+export function konekoHelpers(limit) {
     const raw = express.raw({ type: '*/*', limit });
     const json = express.json({ limit });
     const urlencoded = express.urlencoded({ extended: false, limit });
@@ -36,6 +38,7 @@ export function createBodyParser(limit) {
 
     return (req, res, next) => {
         if (req.body !== undefined) return next();
+        if(!req.cookies) req.cookies = cookie.parse(req.headers.cookie ?? '');
 
         const ct = req.get('content-type') ?? '';
 
@@ -58,9 +61,12 @@ export function createBodyParser(limit) {
 export function buildRequest(req) {
     return {
         url: req.url,
+        path: req.path,
         method: req.method,
         headers: req.headers,
         body: buildBody(req),
+        query: req.query,
+        cookies: req.cookies,
     };
 }
 

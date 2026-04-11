@@ -17,7 +17,7 @@ limitations under the License.
 import express from 'ultimate-express';
 import './logs.js';
 import { Koneko } from '../koneko.js';
-import { buildRequest, createBodyParser, generateError } from './utils.js';
+import { buildRequest, konekoHelpers, generateError } from './utils.js';
 
 const app = express();
 const koneko = new Koneko({
@@ -27,7 +27,7 @@ const koneko = new Koneko({
 const SECRET = process.env.KONEKO_SECRET;
 const MAX_FILE_SIZE_MB = process.env.MAX_FILE_SIZE_MB ? Number(process.env.MAX_FILE_SIZE_MB) : 20;
 
-app.use(createBodyParser(MAX_FILE_SIZE_MB * 1024 * 1024));
+app.use(konekoHelpers(MAX_FILE_SIZE_MB * 1024 * 1024));
 
 app.use(async (req, res) => {
     if(SECRET && req.get('X-Koneko-Secret') !== SECRET) return res.status(401).send(generateError(401, 'Unauthorized'));

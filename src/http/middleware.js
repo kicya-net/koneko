@@ -1,5 +1,5 @@
 import { Koneko } from '../koneko.js';
-import { buildRequest, createBodyParser, generateError } from './utils.js';
+import { buildRequest, konekoHelpers, generateError } from './utils.js';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -45,6 +45,6 @@ export function konekoMiddleware(options = {}) {
     }
 
     return async (req, res, next) => {
-        createBodyParser(maxFileSizeMB)(req, res, () => handle(req, res, next));
+        konekoHelpers(maxFileSizeMB)(req, res, () => handle(req, res, next));
     };
 }

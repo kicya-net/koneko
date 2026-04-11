@@ -24,7 +24,7 @@ import fsSync from 'node:fs';
 import path from 'node:path';
 
 export class Koneko {
-    constructor(options) {
+    constructor(options = {}) {
         this.isolatePool = new IsolatePool(options.isolateCount, options.memoryLimit);
         this.sites = new Map(); // entryId -> SiteWorker
         this.compiledTemplateCache = new LRUCache({ max: 1000, ttl: 1000 * 60 * 60 * 5}); // siteId:filePath:mtime:size -> compiled template function source
