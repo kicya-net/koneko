@@ -18,7 +18,6 @@ export class PooledIsolate extends EventEmitter {
             this.i.dispose();
         }
         this.emit('dispose');
-        this.removeAllListeners();
     }
 }
 
@@ -46,16 +45,17 @@ export class IsolatePool {
     }
 
     createIsolate() {
-        if (this.isolates.length >= this.isolateCount) {
-            throw new Error('Isolate pool is full');
-        }
+        if (this.isolates.length >= this.isolateCount) return;
         const isolate = new PooledIsolate(this.memoryLimit);
         isolate.on('catastrophicError', () => {
             isolate.dispose();
             isolate.busy = true;
         });
         isolate.on('dispose', () => {
-            this.isolates.splice(this.isolates.findIndex(p => p.id === isolate.id), 1);
+            const index = this.isolates.findIndex(p => p.id === isolate.id);
+            if (index !== -1) {
+                this.isolates.splice(index, 1);
+            }
             this.createIsolate();
         });
         this.isolates.push(isolate);
@@ -65,7 +65,6 @@ export class IsolatePool {
     acquire(timeout = 5000) {
         const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
         if (free) {
-            free.busy = true;
             return Promise.resolve(free);
         }
     
@@ -83,6 +82,7 @@ export class IsolatePool {
     }
     
     release(isolate) {
+        if(!isolate.busy) return;
         isolate.busy = false;
     
         while (this.queue.length > 0) {
@@ -91,7 +91,6 @@ export class IsolatePool {
     
             const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
             if (free) {
-                free.busy = true;
                 entry.resolve(free);
                 return;
             }
