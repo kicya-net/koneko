@@ -1,5 +1,5 @@
 import { Koneko } from '../koneko.js';
-import { buildRequest, konekoHelpers, generateError } from './utils.js';
+import { applyResponseHeaders, buildRequest, konekoHelpers, generateError } from './utils.js';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -34,9 +34,7 @@ export function konekoMiddleware(options = {}) {
 
         try {
             const body = await koneko.renderFile(filePath, { siteId, siteRoot, request: buildRequest(req) });
-            for(const name in body.response.headers) {
-                res.set(name, body.response.headers[name]);
-            }
+            applyResponseHeaders(res, body.response.headers);
             res.status(body.response.status);
             res.send(body.body);
         } catch(e) {

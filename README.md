@@ -4,7 +4,7 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 
 ## TODO
 
-- [ ] Set-Cookie sanitization
+- [ ] Require
 - [ ] Database API
 - [ ] FS API
 - [ ] Proper error handling
@@ -36,6 +36,7 @@ node src/http/cli.js serve ./public --processes 2 --clean --isolates 25 --memory
 - HTTPS_PROXY: The HTTP(S) proxy to use for `fetch` requests.
 - KONEKO_SECRET: The secret to use for the Koneko API. If set, the server will require the `X-Koneko-Secret` header to be set.
 - MAX_FILE_SIZE_MB: The maximum file size to accept in MB. By default, it will accept 20MB.
+- SANDBOX_DOMAIN: If set to `1`, the server will sanitize the `Set-Cookie` header by removing the `Domain` cookie attribute.
 
 ## License
 

@@ -58,6 +58,33 @@ export function konekoHelpers(limit) {
     };
 }
 
+export function applyResponseHeaders(res, headers) {
+    const sandboxDomain = Boolean(process.env.SANDBOX_DOMAIN);
+
+    for (const name in headers) {
+        let value = headers[name];
+
+        if (sandboxDomain && name.toLowerCase() === 'set-cookie') {
+            if (Array.isArray(value)) {
+                value = value.map(cookieHeader => {
+                    const parsed = cookie.parseSetCookie(String(cookieHeader));
+                    if (!parsed) return cookieHeader;
+                    delete parsed.domain;
+                    return cookie.stringifySetCookie(parsed);
+                });
+            } else if (typeof value === 'string') {
+                const parsed = cookie.parseSetCookie(value);
+                if (parsed) {
+                    delete parsed.domain;
+                    value = cookie.stringifySetCookie(parsed);
+                }
+            }
+        }
+
+        res.set(name, value);
+    }
+}
+
 export function buildRequest(req) {
     return {
         url: req.url,

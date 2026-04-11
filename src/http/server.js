@@ -17,7 +17,7 @@ limitations under the License.
 import express from 'ultimate-express';
 import './logs.js';
 import { Koneko } from '../koneko.js';
-import { buildRequest, konekoHelpers, generateError } from './utils.js';
+import { applyResponseHeaders, buildRequest, konekoHelpers, generateError } from './utils.js';
 
 const app = express();
 const koneko = new Koneko({
@@ -43,9 +43,7 @@ app.use(async (req, res) => {
     
     try {
         const body = await koneko.renderFile(filePath, { siteId, siteRoot, request });
-        for(const name in body.response.headers) {
-            res.set(name, body.response.headers[name]);
-        }
+        applyResponseHeaders(res, body.response.headers);
         res.status(body.response.status);
         res.send(body.body);
     } catch (err) {
