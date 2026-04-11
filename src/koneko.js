@@ -98,7 +98,7 @@ export class Koneko {
             const cpuTimeBefore = site.isolate.i.cpuTime;
             const body = await new Promise((resolve, reject) => {
                 const watchdog = setInterval(() => {
-                    if (site.isolate.isDisposed) {
+                    if (site.isolate.i.isDisposed) {
                         clearInterval(watchdog);
                         return;
                     }
@@ -129,6 +129,9 @@ export class Koneko {
         } finally {
             site.active = false;
             site.lastUsed = Date.now();
+            if(site.isolate.i.isDisposed) {
+                site.isolate.dispose();
+            }
             this.isolatePool.release(site.isolate);
         }
     }
