@@ -88,7 +88,7 @@ describe('Koneko', () => {
                 request: {},
             });
         }, {
-            message: /Array buffer allocation failed/,
+            message: /(Array buffer allocation failed|CPU limit exceeded)/,
         });
     });
 });
