@@ -4,7 +4,6 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 
 ## TODO
 
-- [ ] Request body parsing
 - [ ] Query, cookies
 - [ ] File upload handling
 - [ ] Set-Cookie sanitization
@@ -14,8 +13,6 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 - [ ] Tests
 - - [ ] Request
 - - [ ] Response
-- [x] Serve CLI
-- [x] Express middleware
 - [ ] Documentation
 
 ## CLI

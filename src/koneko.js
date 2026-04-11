@@ -87,19 +87,8 @@ export class Koneko {
         return siteWorker;
     }
 
-    assembleRequest(expressRequest = {}) {
-        const headers = Object.fromEntries(Object.entries(expressRequest.headers ?? {}).map(([key, value]) => [key.toLowerCase(), value]));
-
-        return {
-            url: expressRequest.url,
-            method: expressRequest.method,
-            headers,
-        };
-    }
-
     async runTemplate(fnName, site, request) {
-        const req = this.assembleRequest(request);
-        const body = await site.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(req).copyInto()], {
+        const body = await site.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(request).copyInto()], {
             timeout: this.wallTimeout,
             result: { promise: true, copy: true },
             arguments: { reference: false },
@@ -138,11 +127,11 @@ export class Koneko {
         }
 
         const site = await this.acquireSite(siteId, siteRoot);
-        let fn = site.compiledFns.has(fnName);
+        let fn = site.compiledFns.has(templateKey);
         if(!fn) {
             const script = await site.compileScript(template);
             await site.runScript(script);
-            site.compiledFns.add(fnName);
+            site.compiledFns.add(templateKey);
         }
 
         return await this.runTemplate(fnName, site, request);
