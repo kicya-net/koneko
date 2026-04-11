@@ -4,8 +4,6 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 
 ## TODO
 
-- [ ] Query, cookies
-- [ ] File upload handling
 - [ ] Set-Cookie sanitization
 - [ ] Database API
 - [ ] FS API

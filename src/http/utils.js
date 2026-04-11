@@ -83,15 +83,20 @@ export function buildBody(req) {
     }
     if (contentType.includes('multipart/form-data')) {
         return {
-            type: 'multipart',
+            type: 'form-data',
+            body: req.body ?? {},
             fields: req.body,
             files: Object.fromEntries(
-                Object.entries(req.files ?? {}).map(([k, f]) => [k, {
-                    name: f.name,
-                    mimetype: f.mimetype,
-                    size: f.size,
-                    _ref: new ivm.Reference(f.data),
-                }])
+                Object.entries(req.files ?? {}).map(([key, value]) => [
+                    key,
+                    (Array.isArray(value) ? value : [value]).map(file => ({
+                        name: file.name,
+                        mimetype: file.mimetype,
+                        size: file.size,
+                        _ref: new ivm.Reference(file.data),
+                        _textRef: new ivm.Reference(() => file.data.toString('utf8')),
+                    })),
+                ]),
             ),
         };
     }
