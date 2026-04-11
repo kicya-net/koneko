@@ -20,7 +20,7 @@ jobs:
         id: deps-cache
         with:
           path: node_modules
-          key: deps-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: deps2-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
