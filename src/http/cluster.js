@@ -13,7 +13,7 @@ if (cluster.isPrimary) {
         try { fs.unlinkSync(process.env.SOCK_PATH) } catch (err) { if (err.code !== 'ENOENT') throw err; };
     }
 
-    const numWorkers = process.env.NUM_PROCESSES || os.cpus().length;
+    const numWorkers = process.env.NUM_PROCESSES ? Number(process.env.NUM_PROCESSES) : Math.min(4, os.cpus().length);
     console.log(`Master cluster setting up ${numWorkers} workers...`);
 
     for (let i = 0; i < numWorkers; i++) {

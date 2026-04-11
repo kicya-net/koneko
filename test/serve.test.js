@@ -26,13 +26,19 @@ async function waitForServer(url, timeoutMs = 8000) {
     throw new Error(`Timed out waiting for server at ${url}`);
 }
 
-async function startCliServe(clean) {
-    const port = 13333;
+async function startCliServe(clean, { processes = 1, port = 13333 } = {}) {
     const args = [cliPath, 'serve', assetsRoot, '--port', String(port)];
     if (clean) args.push('--clean');
+    args.push('--processes', String(processes));
 
     const child = spawn(process.execPath, args, {
         stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+        stdout += chunk;
     });
 
     let stderr = '';
@@ -55,7 +61,7 @@ async function startCliServe(clean) {
         ]);
     }
 
-    return { baseUrl, close, getStderr: () => stderr };
+    return { baseUrl, close, getStderr: () => stderr, getStdout: () => stdout };
 }
 
 describe('CLI serve', () => {
