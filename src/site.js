@@ -43,26 +43,20 @@ export class SiteWorker {
     async runWithWatchdog(fn) {
         this.setActive(true);
         const cpuTimeBefore = this.isolate.i.cpuTime;
-        let cpuLimited = false;
-        const watchdog = setInterval(() => {
-            if (this.isolate.i.isDisposed) {
-                clearInterval(watchdog);
-                return;
-            }
-            if (this.isolate.i.cpuTime - cpuTimeBefore > this.cpuTimeout) {
-                cpuLimited = true;
-                clearInterval(watchdog);
-                this.isolate.dispose();
-            }
-        }, 5);
-
+        const task = {
+            isolate: this.isolate,
+            cpuTimeBefore,
+            cpuTimeout: this.cpuTimeout,
+            cpuLimited: false,
+        };
+        this.koneko.watchdogTasks.add(task);
         try {
             return await fn();
         } catch (err) {
-            if (cpuLimited) throw new Error('CPU limit exceeded');
+            if (task.cpuLimited) throw new Error('CPU limit exceeded');
             throw err;
         } finally {
-            clearInterval(watchdog);
+            this.koneko.watchdogTasks.delete(task);
             this.setActive(false);
         }
     }

@@ -15,6 +15,19 @@ export class Koneko {
         this.cpuTimeout = options.cpuTimeout || 25000000n; // ns (default 25ms)
         this.evictionInterval = setInterval(() => this.evict(), 30_000);
         this.evictionInterval.unref();
+        this.watchdogTasks = new Set();
+        this.watchdogInterval = setInterval(() => this.tickWatchdog(), 5);
+        this.watchdogInterval.unref();
+    }
+    tickWatchdog() {
+        for (const task of this.watchdogTasks) {
+            const { isolate, cpuTimeBefore, cpuTimeout } = task;
+            if (isolate.i.isDisposed) continue;
+            if (isolate.i.cpuTime - cpuTimeBefore > cpuTimeout) {
+                task.cpuLimited = true;
+                isolate.dispose();
+            }
+        }
     }
     evict() {
         const now = Date.now();
