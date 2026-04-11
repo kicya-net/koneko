@@ -12,8 +12,11 @@ export class PooledIsolate extends EventEmitter {
         });
         this.id = id++;
         this.busy = false;
+        this._disposed = false;
     }
     dispose() {
+        if(this._disposed) return;
+        this._disposed = true;
         if(!this.i.isDisposed) {
             this.i.dispose();
         }

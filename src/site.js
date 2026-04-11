@@ -40,6 +40,17 @@ export class SiteWorker {
             });
         });
     }
+    async compileScript(code) {
+        try {
+            this.setActive(true);
+            return await this.isolate.i.compileScript(code);
+        } catch (err) {
+            if(this.isolate.i.isDisposed) this.isolate.dispose();
+            throw err;
+        } finally {
+            this.setActive(false);
+        }
+    }
     async runWithWatchdog(fn) {
         this.setActive(true);
         const cpuTimeBefore = this.isolate.i.cpuTime;

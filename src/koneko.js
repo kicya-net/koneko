@@ -93,7 +93,7 @@ export class Koneko {
     async renderCode(code, { siteId, siteRoot, request }) {
         const site = await this.acquireSite(siteId, siteRoot);
         const templateCode = compileTemplate(code, '__template');
-        const fn = await site.isolate.i.compileScript(templateCode);
+        const fn = await site.compileScript(templateCode);
         await site.runScript(fn);
         return await this.runTemplate('__template', site, request);
     }
@@ -122,8 +122,8 @@ export class Koneko {
         const site = await this.acquireSite(siteId, siteRoot);
         let fn = site.compiledFns.has(fnName);
         if(!fn) {
-            fn = await site.isolate.i.compileScript(template);
-            await site.runScript(fn);
+            const script = await site.compileScript(template);
+            await site.runScript(script);
             site.compiledFns.add(fnName);
         }
 
