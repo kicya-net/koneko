@@ -1,0 +1,4 @@
+<%
+    const file = request.body.files.file[0].text();
+%>
+hi: <%- file %>
