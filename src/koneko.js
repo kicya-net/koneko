@@ -29,7 +29,7 @@ export class Koneko {
         this.sites = new Map(); // entryId -> SiteWorker
         this.compiledTemplateCache = new LRUCache({ max: 1000, ttl: 1000 * 60 * 60 * 5}); // siteId:filePath:mtime:size -> compiled template function source
         this.wallTimeout = options.wallTimeout || 5000;
-        this.cpuTimeout = options.cpuTimeout || 25000000n; // ns (default 25ms)
+        this.cpuTimeout = options.cpuTimeout ?? 25; // ms
         this.evictionInterval = setInterval(() => this.evict(), 30_000);
         this.evictionInterval.unref();
         this.watchdogTasks = new Set();
@@ -37,10 +37,11 @@ export class Koneko {
         this.watchdogInterval.unref();
     }
     tickWatchdog() {
+        const limitNs = BigInt(this.cpuTimeout) * 1_000_000n;
         for (const task of this.watchdogTasks) {
-            const { isolate, cpuTimeBefore, cpuTimeout } = task;
+            const { isolate, cpuTimeBefore } = task;
             if (isolate.i.isDisposed) continue;
-            if (isolate.i.cpuTime - cpuTimeBefore > cpuTimeout) {
+            if (isolate.i.cpuTime - cpuTimeBefore > limitNs) {
                 task.cpuLimited = true;
                 isolate.dispose();
             }

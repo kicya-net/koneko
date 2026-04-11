@@ -11,6 +11,7 @@ const assetsRoot = join(__dirname, 'assets');
 const koneko = new Koneko({
     isolateCount: 1,
     memoryLimit: 32,
+    cpuTimeout: 50,
 });
 
 await new Promise(resolve => setTimeout(resolve, 500));

@@ -24,7 +24,6 @@ export class SiteWorker {
         this.entryId = null;
         this.siteId = siteId;
         this.siteRoot = siteRoot;
-        this.cpuTimeout = koneko.cpuTimeout;
         this.wallTimeout = koneko.wallTimeout;
         this.compiledFns = new Set();
         this.lastUsed = Date.now();
@@ -74,7 +73,6 @@ export class SiteWorker {
         const task = {
             isolate: this.isolate,
             cpuTimeBefore,
-            cpuTimeout: this.cpuTimeout,
             cpuLimited: false,
         };
         this.koneko.watchdogTasks.add(task);
