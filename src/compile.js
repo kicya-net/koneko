@@ -13,6 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import fs from 'node:fs';
+
+const prefix = fs.readFileSync(new URL('./api/sandbox/prefix.js', import.meta.url), 'utf-8');
 
 function quote(str) {
     return "'" + str
@@ -95,11 +98,7 @@ function skipString(source, i) {
 
 export function compileTemplate(source, fnName = '__template') {
     let out = `globalThis.${fnName} = async function(__request) {\n`;
-    out += 'const request = { url: __request.url, method: __request.method, headers: new Headers(__request.headers), body: __request.body, query: __request.query, cookies: __request.cookies };\n';
-    out += 'const __k = [];\n';
-    out += 'const response = { status: 200, statusText: \'\', headers: new Headers() };\n';
-    out += 'function echo(v) { __k.push(v); }\n';
-    out += 'function escapeHtml(v) { if(v==null)return""; return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }\n';
+    out += prefix;
     
     let i = 0;
     while(i < source.length) {

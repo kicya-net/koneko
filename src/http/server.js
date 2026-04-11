@@ -17,7 +17,7 @@ limitations under the License.
 import express from 'ultimate-express';
 import './logs.js';
 import { Koneko } from '../koneko.js';
-import fileUpload from 'express-fileupload';
+import { buildRequest, createBodyParser, generateError } from './utils.js';
 
 const app = express();
 const koneko = new Koneko({
@@ -27,20 +27,7 @@ const koneko = new Koneko({
 const SECRET = process.env.KONEKO_SECRET;
 const MAX_FILE_SIZE_MB = process.env.MAX_FILE_SIZE_MB ? Number(process.env.MAX_FILE_SIZE_MB) : 20;
 
-app.use(express.json({ limit: MAX_FILE_SIZE_MB * 1024 * 1024 }));
-app.use(express.urlencoded({ extended: false, limit: MAX_FILE_SIZE_MB * 1024 * 1024 }));
-app.use(fileUpload({
-    limits: { fileSize: MAX_FILE_SIZE_MB * 1024 * 1024 },
-    abortOnLimit: true,
-    limitHandler: (req, res, next) => {
-        return res.status(413).send(generateError(413, 'File too large'));
-    }
-}));
-
-
-function generateError(status, message) {
-    return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><p>${message}</p><hr><i>Koneko</i></body></html>`;
-}
+app.use(createBodyParser(MAX_FILE_SIZE_MB * 1024 * 1024));
 
 app.use(async (req, res) => {
     if(SECRET && req.get('X-Koneko-Secret') !== SECRET) return res.status(401).send(generateError(401, 'Unauthorized'));
@@ -48,7 +35,7 @@ app.use(async (req, res) => {
     const siteId = req.get('X-Koneko-Site-Id') ?? req.hostname;
     const siteRoot = req.get('X-Koneko-Site-Root');
     const filePath = req.get('X-Koneko-File-Path') ?? req.path;
-    const request = req;
+    const request = buildRequest(req);
 
     if(!siteId) return res.status(500).send(generateError(500, 'Site ID not set'));
     if(!siteRoot) return res.status(500).send(generateError(500, 'Site root not set'));
