@@ -2,6 +2,22 @@
 
 Server-side HTML pre-processor for multi-tenant web hosting.
 
+## TODO
+
+- [ ] Request body parsing
+- [ ] Query, cookies
+- [ ] File upload handling
+- [ ] Set-Cookie sanitization
+- [ ] Database API
+- [ ] FS API
+- [ ] Proper error handling
+- [ ] Tests
+- - [ ] Request
+- - [ ] Response
+- [ ] Serve CLI
+- [ ] Express middleware
+- [ ] Documentation
+
 ## .env
 
 - PORT: The port to run the server on.
@@ -11,3 +27,7 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 - HTTPS_PROXY: The HTTP(S) proxy to use for `fetch` requests.
 - KONEKO_SECRET: The secret to use for the Koneko API. If set, the server will require the `X-Koneko-Secret` header to be set.
 - MAX_FILE_SIZE_MB: The maximum file size to accept in MB. By default, it will accept 20MB.
+
+## License
+
+Koneko is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details. Copyright (c) 2026 Kicya LLC.
