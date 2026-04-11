@@ -85,7 +85,6 @@ export function buildBody(req) {
         return {
             type: 'form-data',
             body: req.body ?? {},
-            fields: req.body,
             files: Object.fromEntries(
                 Object.entries(req.files ?? {}).map(([key, value]) => [
                     key,

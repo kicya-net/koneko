@@ -6,10 +6,10 @@ import fs from 'node:fs';
 export function konekoMiddleware(options = {}) {
     const clean = options.clean ?? false;
     const koneko = options.koneko ?? new Koneko(options.konekoOptions);
-    const maxFileSizeMB = options.maxFileSize ?? 20 * 1024 * 1024;
     const siteRoot = options.siteRoot;
     if(!siteRoot) throw new Error('options.siteRoot is required');
     if(siteRoot !== path.resolve(siteRoot)) throw new Error('options.siteRoot must be an absolute path');
+    const helpers = konekoHelpers(options.maxFileSize ?? 20 * 1024 * 1024);
 
     async function handle(req, res, next) {
         const siteId = req.hostname ?? 'default';
@@ -45,6 +45,6 @@ export function konekoMiddleware(options = {}) {
     }
 
     return async (req, res, next) => {
-        konekoHelpers(maxFileSizeMB)(req, res, () => handle(req, res, next));
+        helpers(req, res, () => handle(req, res, next));
     };
 }

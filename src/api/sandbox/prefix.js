@@ -1,4 +1,4 @@
-function __kWrapFormFile(file) {
+let __kWrapFormFile = (file) => {
     if(!file || typeof file !== 'object' || !file._ref) return file;
     return {
         name: file.name,
@@ -16,7 +16,7 @@ function __kWrapFormFile(file) {
     };
 }
 
-function __kWrapFormFiles(files) {
+let __kWrapFormFiles = (files) => {
     return Object.fromEntries(
         Object.entries(files ?? {}).map(([key, value]) => [
             key,
@@ -25,7 +25,7 @@ function __kWrapFormFiles(files) {
     );
 }
 
-function __kWrapRequestBody(body) {
+let __kWrapRequestBody = (body) => {
     if(!body || typeof body !== 'object') return body;
     if(body.type !== 'form-data') return body;
     return {
