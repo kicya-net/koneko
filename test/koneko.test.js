@@ -70,6 +70,74 @@ describe('Koneko', () => {
         assert.match(body, /<li data-file="\/_partials\/item\.cat">second<\/li>/);
     });
 
+    test('response.debug enables browser console replay for console methods', async () => {
+        const { body, response } = await koneko.renderCode(`
+            <html><body>
+            <%
+                response.debug(true);
+                console.log("hello", { answer: 42 });
+                console.warn("careful");
+                console.error("</script><b>bad</b>");
+            %>
+            <h1>Debug</h1>
+            </body></html>
+        `, {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+
+        assert.equal(response.status, 200);
+        assert.match(body, /<h1>Debug<\/h1>/);
+        assert.match(body, /console\[entry\.level\]/);
+        assert.match(body, /"hello"/);
+        assert.match(body, /"answer":42/);
+        assert.match(body, /"warn"/);
+        assert.match(body, /"error"/);
+        assert.match(body, /"careful"/);
+        assert.doesNotMatch(body, /<\/script><b>bad<\/b>/);
+        assert.match(body, /<\/script><\/body><\/html>\s*$/);
+    });
+
+    test('response.debug does not inject into non-html responses', async () => {
+        const { body, response } = await koneko.renderCode(`
+            <% response.headers.set("content-type", "application/json"); response.debug(true); console.log("hidden"); %>
+            {"ok":true}
+        `, {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+
+        assert.equal(response.status, 200);
+        assert.equal(response.headers['content-type'], 'application/json');
+        assert.doesNotMatch(body, /console\.log\(/);
+        assert.match(body, /\{"ok":true\}/);
+    });
+
+    test('response.debug(false) disables browser console replay', async () => {
+        const { body, response } = await koneko.renderCode(`
+            <html><body>
+            <%
+                response.debug(true);
+                console.log("visible");
+                response.debug(false);
+                console.log("hidden");
+            %>
+            <h1>No Debug</h1>
+            </body></html>
+        `, {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+
+        assert.equal(response.status, 200);
+        assert.doesNotMatch(body, /console\.log\(/);
+        assert.doesNotMatch(body, /"visible"/);
+        assert.doesNotMatch(body, /"hidden"/);
+    });
+
     test('concurrent renderFile for the same file completes for all requests', async () => {
         const concurrent = new Koneko({
             isolateCount: 4,

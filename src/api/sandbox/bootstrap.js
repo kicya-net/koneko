@@ -2,6 +2,84 @@
     const _path = path;
     const requireCache = new Map();
     const templates = Object.create(null);
+    let currentCtx = null;
+
+    function normalizeDebugValue(value, seen = new WeakSet()) {
+        if(value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+            return value;
+        }
+        if(typeof value === 'undefined') {
+            return '[undefined]';
+        }
+        if(typeof value === 'bigint') {
+            return `${value}n`;
+        }
+        if(typeof value === 'function') {
+            return `[Function ${value.name || 'anonymous'}]`;
+        }
+        if(typeof value === 'symbol') {
+            return String(value);
+        }
+        if(value instanceof Error) {
+            return {
+                name: value.name,
+                message: value.message,
+                stack: value.stack,
+            };
+        }
+        if(typeof value !== 'object') {
+            return String(value);
+        }
+        if(seen.has(value)) {
+            return '[Circular]';
+        }
+        seen.add(value);
+        if(Array.isArray(value)) {
+            return value.map((item) => normalizeDebugValue(item, seen));
+        }
+        const out = {};
+        for(const key of Object.keys(value)) {
+            out[key] = normalizeDebugValue(value[key], seen);
+        }
+        return out;
+    }
+
+    function injectDebugScript(body, response, debugEnabled, debugLogs) {
+        if(!debugEnabled || !debugLogs.length) {
+            return body;
+        }
+        const contentType = response.headers.get('content-type');
+        if(contentType != null) {
+            const normalized = String(contentType).toLowerCase();
+            if(!normalized.startsWith('text/html') && !normalized.startsWith('application/xhtml+xml')) {
+                return body;
+            }
+        }
+        const payload = JSON.stringify(debugLogs.map((entry) => ({
+            level: entry.level,
+            args: entry.args.map((value) => normalizeDebugValue(value)),
+        })))
+            .replace(/</g, '\\u003c')
+            .replace(/\u2028/g, '\\u2028')
+            .replace(/\u2029/g, '\\u2029');
+        const script = `<script>(function(){const entries=${payload};for(const entry of entries){const fn=console[entry.level]||console.log;fn(...entry.args);}})();document.currentScript.remove();</script>`;
+        const lowerBody = body.toLowerCase();
+        const bodyCloseIndex = lowerBody.lastIndexOf('</body>');
+        if(bodyCloseIndex === -1) {
+            return body + script;
+        }
+        return body.slice(0, bodyCloseIndex) + script + body.slice(bodyCloseIndex);
+    }
+
+    function pushDebugLog(level, args) {
+        if(!currentCtx || !currentCtx.debugEnabled) {
+            return;
+        }
+        currentCtx.debugLogs.push({
+            level,
+            args,
+        });
+    }
 
     function createBody(body) {
         if(!body) {
@@ -66,7 +144,7 @@
     }
 
     function createContext(req) {
-        return {
+        const ctx = {
             request: {
                 url: req?.url,
                 path: req?.path,
@@ -80,9 +158,15 @@
                 status: 200,
                 statusText: '',
                 headers: new Headers(),
+                debug(enabled = true) {
+                    ctx.debugEnabled = Boolean(enabled);
+                }
             },
             out: [],
+            debugLogs: [],
+            debugEnabled: false,
         };
+        return ctx;
     }
 
     async function ensureTemplate(filePath) {
@@ -127,9 +211,15 @@
             async run(req, filePath, locals) {
                 await ensureTemplate(filePath);
                 const ctx = createContext(req);
-                await templates[filePath](ctx, filePath, locals || {});
+                currentCtx = ctx;
+                try {
+                    await templates[filePath](ctx, filePath, locals || {});
+                } finally {
+                    currentCtx = null;
+                }
+                const body = injectDebugScript(ctx.out.join(''), ctx.response, ctx.debugEnabled, ctx.debugLogs);
                 return {
-                    body: ctx.out.join(''),
+                    body,
                     response: {
                         status: ctx.response.status,
                         statusText: ctx.response.statusText,
@@ -140,7 +230,13 @@
             async include(fromFilePath, includePath, locals, ctx) {
                 const filePath = _path.resolveRequire(fromFilePath, includePath);
                 await ensureTemplate(filePath);
-                await templates[filePath](ctx, filePath, locals || {});
+                const previousCtx = currentCtx;
+                currentCtx = ctx;
+                try {
+                    await templates[filePath](ctx, filePath, locals || {});
+                } finally {
+                    currentCtx = previousCtx;
+                }
             },
             path: _path,
             require: _require,
@@ -161,4 +257,15 @@
     globalThis.require = function require(id) {
         return _require(_path.resolveRequire('/', id));
     };
+    globalThis.console = Object.freeze({
+        log(...args) {
+            pushDebugLog('log', args);
+        },
+        warn(...args) {
+            pushDebugLog('warn', args);
+        },
+        error(...args) {
+            pushDebugLog('error', args);
+        },
+    });
 }

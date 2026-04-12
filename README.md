@@ -8,11 +8,7 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 - [ ] Sessions?
 - [ ] Database API
 - [ ] FS API
-- [ ] Console API
 - [ ] Proper error handling
-- [ ] Tests
-- - [ ] Request
-- - [ ] Response
 - [ ] Documentation
 
 ## CLI
