@@ -5,6 +5,8 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 ## TODO
 
 - [ ] Require
+- [ ] Crypto API
+- [ ] Sessions?
 - [ ] Database API
 - [ ] FS API
 - [ ] Proper error handling
