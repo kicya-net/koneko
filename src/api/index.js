@@ -5,6 +5,7 @@ import buildRequireApi from './require.js';
 
 export async function createApis(siteWorker) {
     if(siteWorker.isolate.i.isDisposed) return;
+    await siteWorker.context.evalClosure(`globalThis.__templates = {}`);
     await buildRequireApi(siteWorker);
     await buildNetApi(siteWorker);
     await siteWorker.context.evalClosure(...buildApi(buildConsoleApi(siteWorker)), { arguments: { reference: true } });

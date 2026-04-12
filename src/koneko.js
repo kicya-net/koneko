@@ -94,9 +94,7 @@ export class Koneko {
     }
 
     async runTemplate(filePath, site, request) {
-        const fnName = site.compiledFns.get(filePath);
-        if(!fnName) throw new Error('Template not compiled: ' + filePath);
-        const body = await site.evalClosure(`return ${fnName}($0, $1)`, [new ivm.ExternalCopy(request).copyInto(), new ivm.ExternalCopy(filePath).copyInto()], {
+        const body = await site.evalClosure(`return __templates["${filePath}"]($0, $1)`, [new ivm.ExternalCopy(request).copyInto(), new ivm.ExternalCopy(filePath).copyInto()], {
             timeout: this.wallTimeout,
             result: { promise: true, copy: true },
             arguments: { reference: false },
@@ -110,7 +108,6 @@ export class Koneko {
         const templateCode = compileTemplate(code, '__template');
         const fn = await site.compileScript(templateCode);
         await site.runScript(fn);
-        site.compiledFns.set('__template', '__template');
         return await this.runTemplate('__template', site, request);
     }
 
@@ -128,20 +125,15 @@ export class Koneko {
             throw new Error('Not a file: ' + filePath);
         }
         const templateKey = `${siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
-        const fnName = `__t_${`${siteId}_${filePath}`.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const site = await this.acquireSite(siteId, siteRoot);
+
         let template = this.compiledTemplateCache.get(templateKey);
         if(!template) {
-            template = await fs.readFile(fullFilePath, 'utf-8');
-            template = compileTemplate(template, fnName);
-            this.compiledTemplateCache.set(templateKey, template);
-        }
-
-        const site = await this.acquireSite(siteId, siteRoot);
-        let fn = site.compiledFns.get(filePath);
-        if(!fn) {
-            const script = await site.compileScript(template);
+            const templateCode = await fs.readFile(fullFilePath, 'utf-8');
+            const compiledTemplateCode = compileTemplate(templateCode, filePath);
+            this.compiledTemplateCache.set(templateKey, compiledTemplateCode);
+            const script = await site.compileScript(compiledTemplateCode);
             await site.runScript(script);
-            site.compiledFns.set(filePath, fnName);
         }
 
         return await this.runTemplate(filePath, site, request);
