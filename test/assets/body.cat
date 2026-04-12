@@ -1,1 +1,1 @@
-<%- request.method %> <%- JSON.stringify(request.body.json()) %>
+<%- request.method %> <%- JSON.stringify(await request.body.json()) %>

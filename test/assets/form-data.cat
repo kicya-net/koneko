@@ -1,5 +1,6 @@
 <%
-const body = request.body ? request.body.formData() : null;
+const rawBody = request.body ? await request.body.formData() : null;
+const body = rawBody ? { fields: await rawBody.fields, files: rawBody.files } : null;
 const upload = body && body.files && Array.isArray(body.files.upload) ? body.files.upload[0] : null;
 const uploadBinary = body && body.files && Array.isArray(body.files.uploadBinary) ? body.files.uploadBinary[0] : null;
 const uploadMulti = body && body.files ? body.files.uploadMulti : null;
@@ -14,18 +15,18 @@ const uploadMulti = body && body.files ? body.files.uploadMulti : null;
         mimetype: upload.mimetype,
         size: upload.size,
         hasRead: typeof upload.arrayBuffer === 'function',
-        text: upload.text(),
+        text: await upload.text(),
     } : null,
     binaryFile: uploadBinary ? {
         name: uploadBinary.name,
         mimetype: uploadBinary.mimetype,
         size: uploadBinary.size,
-        bytes: Array.from(new Uint8Array(uploadBinary.arrayBuffer())),
+        bytes: Array.from(new Uint8Array(await uploadBinary.arrayBuffer())),
     } : null,
-    multiFiles: Array.isArray(uploadMulti) ? uploadMulti.map((file) => ({
+    multiFiles: Array.isArray(uploadMulti) ? await Promise.all(uploadMulti.map(async (file) => ({
         name: file.name,
         mimetype: file.mimetype,
         size: file.size,
-        text: file.text(),
-    })) : null,
+        text: await file.text(),
+    }))) : null,
 }) %>

@@ -3,16 +3,16 @@ let body = null;
 if (request.body) {
     const contentType = request.headers.get('content-type') ?? '';
     if (contentType.includes('application/json')) {
-        body = { type: 'json', data: request.body.json() };
+        body = { type: 'json', data: await request.body.json() };
     } else if (contentType.includes('application/x-www-form-urlencoded')) {
-        body = { type: 'urlencoded', data: request.body.text() };
+        body = { type: 'urlencoded', data: await request.body.text() };
     } else if (contentType.includes('multipart/form-data')) {
-        const formData = request.body.formData();
+        const formData = await request.body.formData();
         body = { type: 'form-data', data: formData.fields, files: formData.files };
     } else if (contentType.includes('text/')) {
-        body = { type: 'text', data: request.body.text() };
+        body = { type: 'text', data: await request.body.text() };
     } else {
-        body = { type: 'raw', data: Array.from(new Uint8Array(request.body.arrayBuffer())) };
+        body = { type: 'raw', data: Array.from(new Uint8Array(await request.body.arrayBuffer())) };
     }
 }
 %>

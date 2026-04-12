@@ -3,15 +3,15 @@ if(req?.body) {
     req.body = {
         text() {
             if(body.type !== 'text') throw new Error('Body does not match the expected type (text/*)');
-            return body.data.copySync();
+            return body.data.copy();
         },
         json() {
             if(body.type !== 'json') throw new Error('Body does not match the expected type (application/json)');
-            return body.data.copySync();
+            return body.data.copy();
         },
         arrayBuffer() {
             if(body.type !== 'raw') throw new Error('Body does not match the expected type (application/octet-stream)');
-            return body.data.copySync();
+            return body.data.copy();
         },
         formData() {
             if(body.type !== 'form-data') throw new Error('Body does not match the expected type (multipart/form-data)');
@@ -23,12 +23,12 @@ if(req?.body) {
                         name: file.name,
                         mimetype: file.mimetype,
                         size: file.size,
-                        arrayBuffer: () => file._ref.copySync(),
-                        text: () => file._textRef.applySync(undefined, [], {
+                        arrayBuffer: () => file._ref.copy(),
+                        text: () => file._textRef.apply(undefined, [], {
                             arguments: { copy: true },
                             result: { copy: true },
                         }),
-                        json: () => JSON.parse(file._textRef.applySync(undefined, [], {
+                        json: () => JSON.parse(file._textRef.apply(undefined, [], {
                             arguments: { copy: true },
                             result: { copy: true },
                         })),
@@ -36,7 +36,7 @@ if(req?.body) {
                 }
             }
             return {
-                fields: body.fields.copySync(),
+                fields: body.fields.copy(),
                 files: body.files
             }
         },
