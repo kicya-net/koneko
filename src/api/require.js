@@ -1,6 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 
+const PATH_CODE = fs.readFileSync(new URL('./sandbox/path.js', import.meta.url), 'utf-8');
 const REQUIRE_CODE = fs.readFileSync(new URL('./sandbox/require.js', import.meta.url), 'utf-8');
 
 export default async function buildRequireApi(siteWorker) {
@@ -21,6 +22,7 @@ export default async function buildRequireApi(siteWorker) {
         return code;
     }
     await siteWorker.context.evalClosure(`
+        ${PATH_CODE}
         ${REQUIRE_CODE}
     `, [
         getModule,

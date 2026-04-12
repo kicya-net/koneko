@@ -46,19 +46,7 @@ if(req?.body) {
 {
     const _require = globalThis._require;
     globalThis.require = function(path) {
-        path = String(path);
-        const isAbsolute = path.startsWith('/');
-        const parts = (isAbsolute ? path : `${filePath.slice(0, filePath.lastIndexOf('/') + 1)}${path}`).split('/');
-        const resolvedParts = [];
-        for(const part of parts) {
-            if(!part || part === '.') continue;
-            if(part === '..') {
-                if(resolvedParts.length) resolvedParts.pop();
-                continue;
-            }
-            resolvedParts.push(part);
-        }
-        return _require('/' + resolvedParts.join('/'));
+        return _require(globalThis.path.resolveRequire(filePath, path));
     };
 }
 
