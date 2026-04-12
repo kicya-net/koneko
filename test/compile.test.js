@@ -35,10 +35,8 @@ async function render(source, request = {}) {
                 require() {
                     throw new Error('require() is not available in compile tests');
                 },
-                path: {
-                    resolveRequire(_fromFilePath, requiredPath) {
-                        return requiredPath;
-                    },
+                requireFrom(_fromFilePath, requiredPath) {
+                    throw new Error('require(' + JSON.stringify(requiredPath) + ') is not available in compile tests');
                 },
             };
             ${code}

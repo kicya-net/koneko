@@ -17,7 +17,7 @@ const koneko = new Koneko({
 await new Promise(resolve => setTimeout(resolve, 500));
 
 describe('require()', () => {
-    test('does not expose internal path helpers to templates', async () => {
+    test('does not expose path as a global to templates', async () => {
         const { body, response } = await koneko.renderCode('<%= typeof path %>', {
             siteId: 'test-site',
             siteRoot: assetsRoot,
@@ -27,6 +27,18 @@ describe('require()', () => {
         assert.equal(response.statusText, '');
         assert.deepEqual(response.headers, {});
         assert.equal(body.trim(), 'undefined');
+    });
+
+    test('loads internal path module via require("path")', async () => {
+        const { body, response } = await koneko.renderCode('<%= require("path").join("a", "b", "..", "c") %>', {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+        assert.equal(response.status, 200);
+        assert.equal(response.statusText, '');
+        assert.deepEqual(response.headers, {});
+        assert.equal(body.trim(), '/a/c');
     });
 
     test('loads and executes a basic module', async () => {

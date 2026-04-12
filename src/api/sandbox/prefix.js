@@ -1,5 +1,5 @@
 const require = function(path) {
-    return __k.require(__k.path.resolveRequire(filePath, path));
+    return __k.requireFrom(filePath, path);
 };
 const include = async function(path, includeLocals) {
     return await __k.include(filePath, path, includeLocals, ctx);

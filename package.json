@@ -10,6 +10,9 @@
     "cli": "node src/http/cli.js",
     "serve": "node src/http/cli.js serve"
   },
+  "files": [
+    "src"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kicya-net/koneko.git"

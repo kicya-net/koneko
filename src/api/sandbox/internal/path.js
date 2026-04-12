@@ -1,4 +1,4 @@
-const path = Object.freeze({
+const path = {
     dirname(filePath) {
         filePath = String(filePath);
         const idx = filePath.lastIndexOf('/');
@@ -20,9 +20,11 @@ const path = Object.freeze({
         return '/' + resolvedParts.join('/');
     },
     join(...parts) {
-        return this.resolve('/', parts.join('/'));
+        return path.resolve('/', parts.join('/'));
     },
     resolveRequire(fromFilePath, requiredPath) {
-        return this.resolve(this.dirname(fromFilePath), requiredPath);
+        return path.resolve(path.dirname(fromFilePath), requiredPath);
     },
-});
+};
+
+module.exports = Object.freeze(path);

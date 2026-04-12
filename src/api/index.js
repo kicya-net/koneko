@@ -4,6 +4,13 @@ import { compileTemplate } from '../compile.js';
 import { safeFetch } from './net.js';
 
 const sandboxDir = new URL('./sandbox/', import.meta.url);
+const internalSandboxDir = new URL('./sandbox/internal/', import.meta.url);
+const internalModuleCodes = Object.fromEntries(
+    fs.readdirSync(internalSandboxDir)
+        .filter((name) => name.endsWith('.js'))
+        .sort((a, b) => a.localeCompare(b))
+        .map((name) => [name.slice(0, -3), fs.readFileSync(new URL(`./sandbox/internal/${name}`, import.meta.url), 'utf-8')]),
+);
 const sandboxFiles = fs.readdirSync(sandboxDir)
     .filter((name) => name.endsWith('.js') && name !== 'prefix.js')
     .sort((a, b) => {
@@ -12,7 +19,13 @@ const sandboxFiles = fs.readdirSync(sandboxDir)
         return a.localeCompare(b);
     });
 const SANDBOX_CODE = sandboxFiles
-    .map((name) => fs.readFileSync(new URL(`./sandbox/${name}`, import.meta.url), 'utf-8'))
+    .map((name) => {
+        const code = fs.readFileSync(new URL(`./sandbox/${name}`, import.meta.url), 'utf-8');
+        if(name !== 'bootstrap.js') {
+            return code;
+        }
+        return code.replace('__INTERNAL_MODULE_CODES__', JSON.stringify(internalModuleCodes));
+    })
     .join('\n');
 
 function buildSandboxClosure(code, bindings) {

@@ -1,6 +1,6 @@
 {
-    const _path = path;
     const requireCache = new Map();
+    const internalModuleCodes = Object.freeze(__INTERNAL_MODULE_CODES__);
     const templates = Object.create(null);
     let currentCtx = null;
 
@@ -183,22 +183,30 @@
         }
     }
 
+    function resolveRequire(fromFilePath, requiredPath) {
+        if(requiredPath in internalModuleCodes) {
+            return requiredPath;
+        }
+        return _require('path').resolveRequire(fromFilePath, requiredPath);
+    }
+
     function _require(filePath) {
         const cachedModule = requireCache.get(filePath);
         if(cachedModule) {
             return cachedModule.exports;
         }
 
-        const code = $getModule.applySyncPromise(undefined, [filePath], {
-            arguments: { copy: true },
-        });
-
         const module = { exports: {} };
         requireCache.set(filePath, module);
         const exports = module.exports;
+        const code = filePath in internalModuleCodes
+            ? internalModuleCodes[filePath]
+            : $getModule.applySyncPromise(undefined, [filePath], {
+                arguments: { copy: true },
+            });
         const moduleFactory = new Function('module', 'exports', 'require', code);
         moduleFactory(module, exports, function(requiredPath) {
-            return _require(_path.resolveRequire(filePath, requiredPath));
+            return _require(resolveRequire(filePath, requiredPath));
         });
         return module.exports;
     }
@@ -228,7 +236,7 @@
                 };
             },
             async include(fromFilePath, includePath, locals, ctx) {
-                const filePath = _path.resolveRequire(fromFilePath, includePath);
+                const filePath = _require('path').resolveRequire(fromFilePath, includePath);
                 await ensureTemplate(filePath);
                 const previousCtx = currentCtx;
                 currentCtx = ctx;
@@ -238,7 +246,9 @@
                     currentCtx = previousCtx;
                 }
             },
-            path: _path,
+            requireFrom(fromFilePath, requiredPath) {
+                return _require(resolveRequire(fromFilePath, requiredPath));
+            },
             require: _require,
         }),
         enumerable: false,
@@ -255,7 +265,7 @@
         return new Response(data);
     };
     globalThis.require = function require(id) {
-        return _require(_path.resolveRequire('/', id));
+        return _require(resolveRequire('/', id));
     };
     globalThis.console = Object.freeze({
         log(...args) {
