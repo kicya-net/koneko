@@ -10,15 +10,36 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function render(source, request = {}) {
     const code = compileTemplate(source);
-    const result = await eval(`(async () => { globalThis.__templates = {}; ${code}; return await __templates["__template"](${JSON.stringify(request)}); })()`);
+    const result = await eval(`(async () => {
+        const templates = Object.create(null);
+        try {
+            globalThis.__k = {
+                reg(name, fn) {
+                    templates[name] = fn;
+                },
+                require() {
+                    throw new Error('require() is not available in compile tests');
+                },
+                path: {
+                    resolveRequire(_fromFilePath, requiredPath) {
+                        return requiredPath;
+                    },
+                },
+            };
+            ${code}
+            return await templates["__template"](${JSON.stringify(request)}, "__template");
+        } finally {
+            delete globalThis.__k;
+        }
+    })()`);
     return result.body;
 }
 
 describe('compile()', () => {
     test('assigns an async template function with echo pipeline', () => {
         const out = compileTemplate('hi');
-        assert.match(out, /^globalThis\.__templates\["__template"] = async function\(req, filePath\) \{/);
-        assert.match(out, /return \{ body: __k\.join\(""\), response: \{.+?\};\n\}$/);
+        assert.match(out, /^__k\.reg\("__template", async function\(req, filePath\) \{/);
+        assert.match(out, /return \{ body: __out\.join\(""\), response: \{.+?\};\n\}\);$/);
     });
 
     test('plain HTML is pushed as a single quoted chunk', async () => {

@@ -1,4 +1,4 @@
-globalThis.path = Object.freeze({
+const path = Object.freeze({
     dirname(filePath) {
         filePath = String(filePath);
         const idx = filePath.lastIndexOf('/');

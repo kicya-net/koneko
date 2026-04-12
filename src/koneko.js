@@ -94,7 +94,10 @@ export class Koneko {
     }
 
     async runTemplate(filePath, site, request) {
-        const body = await site.evalClosure(`return __templates["${filePath}"]($0, $1)`, [new ivm.ExternalCopy(request).copyInto(), new ivm.ExternalCopy(filePath).copyInto()], {
+        const body = await site.evalClosure(`return __k.run($0, $1)`, [
+            new ivm.ExternalCopy(request).copyInto(),
+            new ivm.ExternalCopy(filePath).copyInto(),
+        ], {
             timeout: this.wallTimeout,
             result: { promise: true, copy: true },
             arguments: { reference: false },

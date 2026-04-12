@@ -17,8 +17,8 @@ const koneko = new Koneko({
 await new Promise(resolve => setTimeout(resolve, 500));
 
 describe('require()', () => {
-    test('exposes global path helpers to templates', async () => {
-        const { body, response } = await koneko.renderCode('<%= path.join("a", "b", "..", "c") %>', {
+    test('does not expose internal path helpers to templates', async () => {
+        const { body, response } = await koneko.renderCode('<%= typeof path %>', {
             siteId: 'test-site',
             siteRoot: assetsRoot,
             request: {},
@@ -26,7 +26,7 @@ describe('require()', () => {
         assert.equal(response.status, 200);
         assert.equal(response.statusText, '');
         assert.deepEqual(response.headers, {});
-        assert.equal(body.trim(), '/a/c');
+        assert.equal(body.trim(), 'undefined');
     });
 
     test('loads and executes a basic module', async () => {

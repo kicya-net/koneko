@@ -97,7 +97,7 @@ function skipString(source, i) {
 }
 
 export function compileTemplate(source, filePath = '__template') {
-    let out = `globalThis.__templates["${filePath}"] = async function(req, filePath) {\n`;
+    let out = `__k.reg("${filePath}", async function(req, filePath) {\n`;
     out += prefix;
     
     let i = 0;
@@ -105,12 +105,12 @@ export function compileTemplate(source, filePath = '__template') {
         const tagStart = source.indexOf('<%', i);
         if (tagStart === -1) {
             // no more tags
-            out += `__k.push(${quote(source.slice(i))});\n`;
+            out += `__out.push(${quote(source.slice(i))});\n`;
             break;
         }
         if (tagStart > i) {
             // HTML before tag
-            out += `__k.push(${quote(source.slice(i, tagStart))});\n`;
+            out += `__out.push(${quote(source.slice(i, tagStart))});\n`;
         }
 
         // find closing tag
@@ -122,16 +122,16 @@ export function compileTemplate(source, filePath = '__template') {
         const inner = source.slice(tagStart + 2, tagEnd);
         if(inner[0] === '=') {
             // <%= expr %> - escaped output
-            out += `__k.push(escapeHtml(${stripLineComments(inner.slice(1).trim())}));\n`;
+            out += `__out.push(escapeHtml(${stripLineComments(inner.slice(1).trim())}));\n`;
         } else if (inner[0] === '-') {
             // <%- expr %> - raw output
-            out += `__k.push(${stripLineComments(inner.slice(1).trim())});\n`;
+            out += `__out.push(${stripLineComments(inner.slice(1).trim())});\n`;
           } else {
             // <% code %>
             out += inner.trim() + '\n';
         }
         i = tagEnd + 2;
     }
-    out += 'return { body: __k.join(""), response: { status: response.status, statusText: response.statusText, headers: Object.fromEntries(response.headers.entries()) } };\n}';
+    out += 'return { body: __out.join(""), response: { status: response.status, statusText: response.statusText, headers: Object.fromEntries(response.headers.entries()) } };\n});';
     return out;
 }

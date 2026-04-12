@@ -43,12 +43,9 @@ if(req?.body) {
     }
 }
 
-{
-    const _require = globalThis._require;
-    globalThis.require = function(path) {
-        return _require(globalThis.path.resolveRequire(filePath, path));
-    };
-}
+const require = function(path) {
+    return __k.require(__k.path.resolveRequire(filePath, path));
+};
 
 const request = { 
     url: req.url,
@@ -59,8 +56,7 @@ const request = {
     query: req.query,
     cookies: req.cookies,
 };
-const __k = [];
+const __out = [];
 const response = { status: 200, statusText: '', headers: new Headers() };
-function echo(v) { __k.push(v); }
+function echo(v) { __out.push(v); }
 function escapeHtml(v) { if(v==null)return""; return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-req = undefined;

@@ -15,11 +15,7 @@ limitations under the License.
 */
 
 import { request, EnvHttpProxyAgent, interceptors } from 'undici';
-import fs from 'fs/promises';
 import { validateUrl } from './utils.js';
-
-const SANDBOX_HEADERS_CLASS = await fs.readFile(new URL('./sandbox/headers.js', import.meta.url), 'utf-8');
-const SANDBOX_RESPONSE_CLASS = await fs.readFile(new URL('./sandbox/response.js', import.meta.url), 'utf-8');
 
 const MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
 
@@ -103,22 +99,4 @@ export async function safeFetch(urlString, options = {}) {
     } finally {
         clearTimeout(timeout);
     }
-}
-
-export default async function buildNetApi(siteWorker) {
-    await siteWorker.context.evalClosure(`
-        ${SANDBOX_HEADERS_CLASS}
-        ${SANDBOX_RESPONSE_CLASS}
-        globalThis.Headers = Headers;
-    
-        globalThis.fetch = async function(url, options) {
-            const data = await $0.apply(undefined, [url, options || {}], {
-                arguments: { copy: true },
-                result: { promise: true, copy: true }
-            });
-            return new Response(data);
-        };
-    `, [
-        async (url, options) => safeFetch(url, options),
-    ], { arguments: { reference: true } });
 }
