@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
+import path from 'node:path';
 import { createApis } from './api/index.js';
 
 export class SiteWorker {
@@ -34,6 +34,11 @@ export class SiteWorker {
         this.isolate = await this.koneko.isolatePool.acquire();
         this.entryId = `${this.siteId}:${this.isolate.id}`;
         this.context = await this.isolate.i.createContext();
+
+        const resolvedSiteRoot = path.resolve(this.siteRoot);
+        if(resolvedSiteRoot !== this.siteRoot) {
+            this.siteRoot = resolvedSiteRoot;
+        }
         await createApis(this);
     }
     setActive(active) {
