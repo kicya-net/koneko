@@ -34,8 +34,8 @@ node src/http/cli.js serve ./public --processes 2 --clean --isolates 25 --memory
 - HOST: The host to run the server on.
 - PORT: The port to run the server on.
 - SOCK_PATH: The path to the socket file. If set, the server will listen on the socket file instead of the port.
-- NUM_PROCESSES: The number of processes to run. By default, it will use MIN(4, CPU cores).
-- ISOLATES_PER_PROCESS: The number of isolates to run per process. By default, it will create 10 isolates per process.
+- NUM_THREADS: The number of threads to run. By default, it will use MIN(4, CPU cores).
+- ISOLATES_PER_THREAD: The number of isolates to run per thread. By default, it will create 10 isolates per thread.
 - HTTPS_PROXY: The HTTP(S) proxy to use for `fetch` requests.
 - KONEKO_SECRET: The secret to use for the Koneko API. If set, the server will require the `X-Koneko-Secret` header to be set.
 - MAX_FILE_SIZE_MB: The maximum file size to accept in MB. By default, it will accept 20MB.

@@ -21,7 +21,7 @@ import { applyResponseHeaders, buildRequest, konekoHelpers, generateError } from
 
 const app = express();
 const koneko = new Koneko({
-    isolateCount: process.env.ISOLATES_PER_PROCESS ? Number(process.env.ISOLATES_PER_PROCESS) : 10,
+    isolateCount: process.env.ISOLATES_PER_THREAD ? Number(process.env.ISOLATES_PER_THREAD) : 10,
     memoryLimit: process.env.ISOLATE_MEMORY_LIMIT_MB ? Number(process.env.ISOLATE_MEMORY_LIMIT_MB) : 64,
 });
 const SECRET = process.env.KONEKO_SECRET;

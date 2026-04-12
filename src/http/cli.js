@@ -10,8 +10,8 @@ import os from 'node:os';
 args
     .option('port', 'The port to run the server on', process.env.PORT ? Number(process.env.PORT) : 3000)
     .option('sock', 'The path to the socket file', process.env.SOCK_PATH)
-    .option('processes', 'The number of worker processes to run', process.env.NUM_PROCESSES ? Number(process.env.NUM_PROCESSES) : Math.min(4, os.cpus().length))
-    .option('isolates', 'The number of isolates to run', process.env.ISOLATES_PER_PROCESS ? Number(process.env.ISOLATES_PER_PROCESS) : 40)
+    .option('threads', 'The number of worker threads to run', process.env.NUM_THREADS ? Number(process.env.NUM_THREADS) : Math.min(4, os.cpus().length))
+    .option('isolates', 'The number of isolates to run', process.env.ISOLATES_PER_THREAD ? Number(process.env.ISOLATES_PER_THREAD) : 40)
     .option('clean', 'Render files without .cat extension', process.env.CLEAN ? Boolean(process.env.CLEAN) : false)
     .option('file-size', 'The maximum file size to accept in MB', process.env.MAX_FILE_SIZE_MB ? Number(process.env.MAX_FILE_SIZE_MB) : 20)
     .option('memory', 'The memory limit for each isolate in MB', process.env.ISOLATE_MEMORY_LIMIT_MB ? Number(process.env.ISOLATE_MEMORY_LIMIT_MB) : 64)
@@ -27,8 +27,8 @@ async function serve(name, sub, options) {
         process.exit(1);
     }
 
-    if (options.processes < 1) {
-        console.error('The --processes value must be at least 1');
+    if (options.threads < 1) {
+        console.error('The --threads value must be at least 1');
         process.exit(1);
     }
 
@@ -39,7 +39,7 @@ async function serve(name, sub, options) {
             try { fs.unlinkSync(options.sock) } catch (err) { if (err.code !== 'ENOENT') throw err; }
         }
 
-        for (let i = 0; i < options.processes; i++) {
+        for (let i = 0; i < options.threads; i++) {
             await new Promise(resolve => setTimeout(resolve, 100)); // weird fix for socket listening
             cluster.fork();
         }
@@ -49,8 +49,8 @@ async function serve(name, sub, options) {
             cluster.fork();
         });
         console.log(`Serving ${fullSiteRoot} at ${options.sock ?? options.port}`);
-        console.log(`- Processes: ${options.processes}`);
-        console.log(`- Isolate count: ${options.isolates}`);
+        console.log(`- Threads: ${options.threads}`);
+        console.log(`- Isolate count per process: ${options.isolates}`);
         console.log(`- Memory limit: ${options.memory} MB`);
         console.log(`- CPU timeout: ${options.cpuTimeout} ms`);
         console.log(`- Wall timeout: ${options.wallTimeout} ms`);
@@ -71,6 +71,11 @@ async function serve(name, sub, options) {
         },
     }));
     app.listen(options.sock ?? options.port);
+}
+
+if(!process.argv.find(arg => arg === 'serve' || arg === 'help' || arg === '--help' || arg === '-h')) {
+    console.error('No command provided. Use --help to see available commands.');
+    process.exit(1);
 }
 
 args.parse(process.argv, {
