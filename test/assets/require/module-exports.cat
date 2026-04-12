@@ -1,0 +1,4 @@
+<%
+    const fn = require('./overrides-exports.js');
+%>
+<%= fn() %>

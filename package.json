@@ -5,7 +5,7 @@
   "main": "src/http/cluster.js",
   "type": "module",
   "scripts": {
-    "test": "node --test",
+    "test": "node --test test/*.test.js",
     "start": "node src/http/cluster.js",
     "cli": "node src/http/cli.js",
     "serve": "node src/http/cli.js serve"

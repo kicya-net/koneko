@@ -1,0 +1,7 @@
+<%
+    const a = require('./counter.js');
+    a.marker = 'changed';
+    const b = require('././counter.js');
+    const c = require('./nested/../counter.js');
+%>
+<%= `${a.loaded}:${b.loaded}:${c.loaded}:${b.marker}` %>

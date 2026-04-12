@@ -1,0 +1,5 @@
+<%
+    const a = require('./loop-a.js');
+    const b = require('./loop-b.js');
+%>
+<%= `${a.name}:${a.bName}:${b.name}:${b.aType}` %>
