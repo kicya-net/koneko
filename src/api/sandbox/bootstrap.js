@@ -9,7 +9,7 @@
             return cachedModule.exports;
         }
 
-        const code = $0.applySyncPromise(undefined, [filePath], {
+        const code = $getModule.applySyncPromise(undefined, [filePath], {
             arguments: { copy: true },
         });
 
@@ -44,7 +44,7 @@
 
     globalThis.Headers = Headers;
     globalThis.fetch = async function fetch(url, options) {
-        const data = await $1.apply(undefined, [url, options || {}], {
+        const data = await $safeFetch.apply(undefined, [url, options || {}], {
             arguments: { copy: true },
             result: { promise: true, copy: true },
         });

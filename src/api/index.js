@@ -2,12 +2,33 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { safeFetch } from './net.js';
 
-const SANDBOX_CODE = [
-    fs.readFileSync(new URL('./sandbox/headers.js', import.meta.url), 'utf-8'),
-    fs.readFileSync(new URL('./sandbox/response.js', import.meta.url), 'utf-8'),
-    fs.readFileSync(new URL('./sandbox/path.js', import.meta.url), 'utf-8'),
-    fs.readFileSync(new URL('./sandbox/bootstrap.js', import.meta.url), 'utf-8'),
-].join('\n');
+const sandboxDir = new URL('./sandbox/', import.meta.url);
+const sandboxFiles = fs.readdirSync(sandboxDir)
+    .filter((name) => name.endsWith('.js') && name !== 'prefix.js')
+    .sort((a, b) => {
+        if(a === 'bootstrap.js') return 1;
+        if(b === 'bootstrap.js') return -1;
+        return a.localeCompare(b);
+    });
+const SANDBOX_CODE = sandboxFiles
+    .map((name) => fs.readFileSync(new URL(`./sandbox/${name}`, import.meta.url), 'utf-8'))
+    .join('\n');
+
+function buildSandboxClosure(code, bindings) {
+    const names = [];
+    const rewrittenCode = code.replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (match, name) => {
+        if(!(name in bindings)) {
+            throw new Error(`Unknown sandbox binding: $${name}`);
+        }
+        let index = names.indexOf(name);
+        if(index === -1) {
+            index = names.length;
+            names.push(name);
+        }
+        return `$${index}`;
+    });
+    return [rewrittenCode, names.map((name) => bindings[name])];
+}
 
 export async function createApis(siteWorker) {
     if(siteWorker.isolate.i.isDisposed) return;
@@ -24,10 +45,12 @@ export async function createApis(siteWorker) {
         return await fs.promises.readFile(fullFilePath, 'utf-8');
     }
 
-    await siteWorker.context.evalClosure(SANDBOX_CODE, [
+    const [code, args] = buildSandboxClosure(SANDBOX_CODE, {
         getModule,
-        async (url, options) => safeFetch(url, options),
-    ], {
+        safeFetch: async (url, options) => safeFetch(url, options),
+    });
+
+    await siteWorker.context.evalClosure(code, args, {
         arguments: { reference: true },
     });
 }
