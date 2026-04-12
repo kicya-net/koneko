@@ -1,12 +1,12 @@
 <%
-const body = request.body;
+const body = request.body ? request.body.formData() : null;
 const upload = body && body.files && Array.isArray(body.files.upload) ? body.files.upload[0] : null;
 const uploadBinary = body && body.files && Array.isArray(body.files.uploadBinary) ? body.files.uploadBinary[0] : null;
 const uploadMulti = body && body.files ? body.files.uploadMulti : null;
 %>
 <%- JSON.stringify({
-    type: body ? body.type : null,
-    body: body ? body.body : null,
+    type: body ? 'form-data' : null,
+    body: body ? body.fields : null,
     uploadIsArray: !!(body && body.files && Array.isArray(body.files.upload)),
     uploadBinaryIsArray: !!(body && body.files && Array.isArray(body.files.uploadBinary)),
     file: upload ? {

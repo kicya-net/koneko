@@ -1,37 +1,59 @@
-if(__request?.body?.type === 'form-data' && __request?.body?.files) {
-    for(const fieldName in __request.body.files) {
-        const files = __request.body.files[fieldName];
-        for(let i = 0; i < files.length; i++) {
-            const file = files[i];
-            files[i] = {
-                name: file.name,
-                mimetype: file.mimetype,
-                size: file.size,
-                arrayBuffer: () => file._ref.copySync(),
-                text: () => file._textRef.applySync(undefined, [], {
-                    arguments: { copy: true },
-                    result: { copy: true },
-                }),
-                json: () => JSON.parse(file._textRef.applySync(undefined, [], {
-                    arguments: { copy: true },
-                    result: { copy: true },
-                })),
-            };
-        }
+if(req?.body) {
+    const body = req.body;
+    req.body = {
+        text() {
+            if(body.type !== 'text') throw new Error('Body does not match the expected type (text/*)');
+            return body.data.copySync();
+        },
+        json() {
+            if(body.type !== 'json') throw new Error('Body does not match the expected type (application/json)');
+            return body.data.copySync();
+        },
+        arrayBuffer() {
+            if(body.type !== 'raw') throw new Error('Body does not match the expected type (application/octet-stream)');
+            return body.data.copySync();
+        },
+        formData() {
+            if(body.type !== 'form-data') throw new Error('Body does not match the expected type (multipart/form-data)');
+            for(const fieldName in body.files) {
+                const files = body.files[fieldName];
+                for(let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    files[i] = {
+                        name: file.name,
+                        mimetype: file.mimetype,
+                        size: file.size,
+                        arrayBuffer: () => file._ref.copySync(),
+                        text: () => file._textRef.applySync(undefined, [], {
+                            arguments: { copy: true },
+                            result: { copy: true },
+                        }),
+                        json: () => JSON.parse(file._textRef.applySync(undefined, [], {
+                            arguments: { copy: true },
+                            result: { copy: true },
+                        })),
+                    };
+                }
+            }
+            return {
+                fields: body.fields.copySync(),
+                files: body.files
+            }
+        },
     }
 }
 
 const request = { 
-    url: __request.url,
-    path: __request.path,
-    method: __request.method,
-    headers: new Headers(__request.headers),
-    body: __request.body,
-    query: __request.query,
-    cookies: __request.cookies,
+    url: req.url,
+    path: req.path,
+    method: req.method,
+    headers: new Headers(req.headers),
+    body: req.body,
+    query: req.query,
+    cookies: req.cookies,
 };
 const __k = [];
 const response = { status: 200, statusText: '', headers: new Headers() };
 function echo(v) { __k.push(v); }
 function escapeHtml(v) { if(v==null)return""; return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-__request = undefined;
+req = undefined;

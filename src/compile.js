@@ -97,7 +97,7 @@ function skipString(source, i) {
 }
 
 export function compileTemplate(source, fnName = '__template') {
-    let out = `globalThis.${fnName} = async function(__request) {\n`;
+    let out = `globalThis.${fnName} = async function(req) {\n`;
     out += prefix;
     
     let i = 0;

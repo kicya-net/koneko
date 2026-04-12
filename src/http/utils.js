@@ -103,15 +103,15 @@ export function buildBody(req) {
     const contentType = req.get('content-type') ?? '';
 
     if (contentType.includes('application/json')) {
-        return { type: 'json', data: req.body };
+        return { type: 'json', data: new ivm.Reference(req.body) };
     }
     if (contentType.includes('application/x-www-form-urlencoded')) {
-        return { type: 'urlencoded', data: req.body };
+        return { type: 'urlencoded', data: new ivm.Reference(req.body) };
     }
     if (contentType.includes('multipart/form-data')) {
         return {
             type: 'form-data',
-            body: req.body ?? {},
+            fields: new ivm.Reference(req.body ?? {}),
             files: Object.fromEntries(
                 Object.entries(req.files ?? {}).map(([key, value]) => [
                     key,
@@ -127,10 +127,10 @@ export function buildBody(req) {
         };
     }
     if (contentType.includes('text/')) {
-        return { type: 'text', data: req.body };
+        return { type: 'text', data: new ivm.Reference(req.body) };
     }
     if(contentType.includes('application/octet-stream')) {
-        return { type: 'raw', data: req.body };
+        return { type: 'raw', data: new ivm.Reference(req.body) };
     }
     return null;
 }

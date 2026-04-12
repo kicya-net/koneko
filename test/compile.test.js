@@ -17,7 +17,7 @@ async function render(source, request = {}) {
 describe('compile()', () => {
     test('assigns an async template function with echo pipeline', () => {
         const out = compileTemplate('hi');
-        assert.match(out, /^globalThis\.__template = async function\(__request\) \{/);
+        assert.match(out, /^globalThis\.__template = async function\(req\) \{/);
         assert.match(out, /return \{ body: __k\.join\(""\), response: \{.+?\};\n\}$/);
     });
 

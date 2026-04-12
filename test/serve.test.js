@@ -118,8 +118,7 @@ describe('CLI serve', () => {
             });
             assert.equal(resp.status, 200);
             const text = await resp.text();
-            // Expect method to be 'POST' and body to show JSON
-            assert.match(text, /^POST\s+{"type":"json","data":{"test":1}}/);
+            assert.match(text, /^POST\s+{\"test\":1}/);
         } finally {
             await close();
         }
