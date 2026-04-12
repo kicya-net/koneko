@@ -177,7 +177,7 @@ describe('request object', () => {
         assert.equal(getStderr(), '');
     });
 
-    test('exposes multipart binary file bytes via lazy read()', async () => {
+    test('exposes multipart binary file bytes via lazy arrayBuffer()', async () => {
         const { baseUrl, close, getStderr } = await startCliServe();
         try {
             const form = new FormData();

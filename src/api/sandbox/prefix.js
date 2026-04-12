@@ -7,7 +7,7 @@ if(__request?.body?.type === 'form-data' && __request?.body?.files) {
                 name: file.name,
                 mimetype: file.mimetype,
                 size: file.size,
-                read: () => file._ref.copySync(),
+                arrayBuffer: () => file._ref.copySync(),
                 text: () => file._textRef.applySync(undefined, [], {
                     arguments: { copy: true },
                     result: { copy: true },
