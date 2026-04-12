@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { compileTemplate } from '../compile.js';
 import { safeFetch } from './net.js';
 
 const sandboxDir = new URL('./sandbox/', import.meta.url);
@@ -45,8 +46,28 @@ export async function createApis(siteWorker) {
         return await fs.promises.readFile(fullFilePath, 'utf-8');
     }
 
+    async function getTemplateCode(filePath) {
+        const fullFilePath = path.join(siteWorker.siteRoot, filePath);
+        if(!fullFilePath.startsWith(siteWorker.siteRoot + path.sep)) {
+            throw new Error('Invalid file path');
+        }
+        const stat = fs.statSync(fullFilePath);
+        if(!stat.isFile()) {
+            throw new Error('Not a file: ' + filePath);
+        }
+        const templateKey = `${siteWorker.siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
+        let compiledTemplateCode = siteWorker.koneko.compiledTemplateCache.get(templateKey);
+        if(!compiledTemplateCode) {
+            const templateCode = await fs.promises.readFile(fullFilePath, 'utf-8');
+            compiledTemplateCode = compileTemplate(templateCode, filePath);
+            siteWorker.koneko.compiledTemplateCache.set(templateKey, compiledTemplateCode);
+        }
+        return compiledTemplateCode;
+    }
+
     const [code, args] = buildSandboxClosure(SANDBOX_CODE, {
         getModule,
+        getTemplateCode,
         safeFetch: async (url, options) => safeFetch(url, options),
     });
 

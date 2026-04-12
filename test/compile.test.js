@@ -12,10 +12,25 @@ async function render(source, request = {}) {
     const code = compileTemplate(source);
     const result = await eval(`(async () => {
         const templates = Object.create(null);
+        const ctx = {
+            request: ${JSON.stringify(request)},
+            response: {
+                status: 200,
+                statusText: '',
+                headers: new Headers(),
+            },
+            out: [],
+        };
         try {
             globalThis.__k = {
                 reg(name, fn) {
                     templates[name] = fn;
+                },
+                async include(_fromFilePath, includePath, _locals, includeCtx) {
+                    if(!(includePath in templates)) {
+                        throw new Error('Template not found: ' + includePath);
+                    }
+                    await templates[includePath](includeCtx, includePath, _locals || {});
                 },
                 require() {
                     throw new Error('require() is not available in compile tests');
@@ -27,19 +42,20 @@ async function render(source, request = {}) {
                 },
             };
             ${code}
-            return await templates["__template"](${JSON.stringify(request)}, "__template");
+            await templates["__template"](ctx, "__template", {});
+            return ctx.out.join("");
         } finally {
             delete globalThis.__k;
         }
     })()`);
-    return result.body;
+    return result;
 }
 
 describe('compile()', () => {
     test('assigns an async template function with echo pipeline', () => {
         const out = compileTemplate('hi');
-        assert.match(out, /^__k\.reg\("__template", async function\(req, filePath\) \{/);
-        assert.match(out, /return \{ body: __out\.join\(""\), response: \{.+?\};\n\}\);$/);
+        assert.match(out, /^__k\.reg\("__template", async function\(ctx, filePath, locals\) \{/);
+        assert.match(out, /\}\);$/);
     });
 
     test('plain HTML is pushed as a single quoted chunk', async () => {

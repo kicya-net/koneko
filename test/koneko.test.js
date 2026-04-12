@@ -55,6 +55,21 @@ describe('Koneko', () => {
         assert.match(body, /__template/);
     });
 
+    test('includes nested templates with shared response and locals', async () => {
+        const { body, response } = await koneko.renderFile('include.cat', {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+
+        assert.equal(response.status, 200);
+        assert.equal(response.statusText, '');
+        assert.equal(response.headers['x-partial'], 'shared');
+        assert.match(body, /<ul>/);
+        assert.match(body, /<li data-file="\/_partials\/item\.cat">first<\/li>/);
+        assert.match(body, /<li data-file="\/_partials\/item\.cat">second<\/li>/);
+    });
+
     test('concurrent renderFile for the same file completes for all requests', async () => {
         const concurrent = new Koneko({
             isolateCount: 4,

@@ -1,0 +1,4 @@
+<%
+response.headers.set('x-partial', 'shared');
+%>
+<li data-file="<%- filePath %>"><%= locals.value %></li>

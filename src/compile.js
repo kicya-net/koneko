@@ -97,7 +97,7 @@ function skipString(source, i) {
 }
 
 export function compileTemplate(source, filePath = '__template') {
-    let out = `__k.reg("${filePath}", async function(req, filePath) {\n`;
+    let out = `__k.reg("${filePath}", async function(ctx, filePath, locals) {\n`;
     out += prefix;
     
     let i = 0;
@@ -132,6 +132,6 @@ export function compileTemplate(source, filePath = '__template') {
         }
         i = tagEnd + 2;
     }
-    out += 'return { body: __out.join(""), response: { status: response.status, statusText: response.statusText, headers: Object.fromEntries(response.headers.entries()) } };\n});';
+    out += '});';
     return out;
 }

@@ -19,9 +19,6 @@ import { LRUCache } from 'lru-cache';
 import { IsolatePool } from './isolates.js';
 import { compileTemplate } from './compile.js';
 import { SiteWorker } from './site.js';
-import fs from 'node:fs/promises';
-import fsSync from 'node:fs';
-import path from 'node:path';
 
 function normalizeFilePath(filePath) {
     if(filePath.startsWith('./')) filePath = filePath.slice(2);
@@ -115,30 +112,8 @@ export class Koneko {
     }
 
     async renderFile(filePath, { siteId, siteRoot, request }) {
-        // Validate file path
         filePath = normalizeFilePath(filePath);
-        const fullSitePath = path.resolve(siteRoot);
-        const fullFilePath = path.join(fullSitePath, filePath);
-        if(!fullFilePath.startsWith(fullSitePath + path.sep)) {
-            throw new Error('Invalid file path');
-        }
-
-        let stat = fsSync.statSync(fullFilePath);
-        if(!stat.isFile()) {
-            throw new Error('Not a file: ' + filePath);
-        }
-        const templateKey = `${siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
         const site = await this.acquireSite(siteId, siteRoot);
-
-        let template = this.compiledTemplateCache.get(templateKey);
-        if(!template) {
-            const templateCode = await fs.readFile(fullFilePath, 'utf-8');
-            const compiledTemplateCode = compileTemplate(templateCode, filePath);
-            this.compiledTemplateCache.set(templateKey, compiledTemplateCode);
-            const script = await site.compileScript(compiledTemplateCode);
-            await site.runScript(script);
-        }
-
         return await this.runTemplate(filePath, site, request);
     }
 }

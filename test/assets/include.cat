@@ -1,0 +1,4 @@
+<ul>
+<% await include('./_partials/item.cat', { value: 'first' }); %>
+<% await include('./_partials/item.cat', { value: 'second' }); %>
+</ul>
