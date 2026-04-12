@@ -1,0 +1,16 @@
+<%
+const formData = request.body ? await request.body.formData() : null;
+const fields = formData ? await formData.fields : null;
+const file = formData && formData.files && Array.isArray(formData.files.upload) ? formData.files.upload[0] : null;
+%>
+<%- JSON.stringify({
+    type: formData ? 'form-data' : null,
+    body: fields,
+    file: file ? {
+        name: file.name,
+        mimetype: file.mimetype,
+        size: file.size,
+        hasRead: typeof file.arrayBuffer === 'function',
+        text: await file.text(),
+    } : null,
+}) %>

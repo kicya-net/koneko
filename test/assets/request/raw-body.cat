@@ -1,0 +1,6 @@
+<%- JSON.stringify({
+    body: {
+        type: 'raw',
+        data: Array.from(new Uint8Array(await request.body.arrayBuffer())),
+    },
+}) %>

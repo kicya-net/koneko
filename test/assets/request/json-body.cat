@@ -1,0 +1,6 @@
+<%- JSON.stringify({
+    body: {
+        type: 'json',
+        data: await request.body.json(),
+    },
+}) %>

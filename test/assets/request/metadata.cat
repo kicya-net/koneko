@@ -1,0 +1,8 @@
+<%- JSON.stringify({
+    method: request.method,
+    url: request.url,
+    path: request.path,
+    headerValue: request.headers.get('x-test-header'),
+    query: request.query,
+    cookies: request.cookies,
+}) %>

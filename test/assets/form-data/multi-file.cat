@@ -1,0 +1,13 @@
+<%
+const formData = request.body ? await request.body.formData() : null;
+const files = formData && formData.files ? formData.files.uploadMulti : null;
+%>
+<%- JSON.stringify({
+    type: formData ? 'form-data' : null,
+    multiFiles: Array.isArray(files) ? await Promise.all(files.map(async (file) => ({
+        name: file.name,
+        mimetype: file.mimetype,
+        size: file.size,
+        text: await file.text(),
+    }))) : null,
+}) %>

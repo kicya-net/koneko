@@ -1,0 +1,13 @@
+<%
+const formData = request.body ? await request.body.formData() : null;
+const file = formData && formData.files && Array.isArray(formData.files.uploadBinary) ? formData.files.uploadBinary[0] : null;
+%>
+<%- JSON.stringify({
+    type: formData ? 'form-data' : null,
+    binaryFile: file ? {
+        name: file.name,
+        mimetype: file.mimetype,
+        size: file.size,
+        bytes: Array.from(new Uint8Array(await file.arrayBuffer())),
+    } : null,
+}) %>

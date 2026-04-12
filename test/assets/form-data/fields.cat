@@ -1,0 +1,8 @@
+<%
+const formData = request.body ? await request.body.formData() : null;
+const fields = formData ? await formData.fields : null;
+%>
+<%- JSON.stringify({
+    type: formData ? 'form-data' : null,
+    body: fields,
+}) %>

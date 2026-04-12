@@ -70,10 +70,10 @@ async function startCliServe() {
 }
 
 describe('request object', () => {
-    test('exposes method, url, path, headers, body, query, and cookies', async () => {
+    test('exposes method, url, path, headers, query, and cookies', async () => {
         const { baseUrl, close, getStderr } = await startCliServe();
         try {
-            const response = await fetch(`${baseUrl}/request.cat?name=koneko&count=2`, {
+            const response = await fetch(`${baseUrl}/request/metadata.cat?name=koneko&count=2`, {
                 method: 'POST',
                 headers: {
                     'content-type': 'application/json',
@@ -87,13 +87,9 @@ describe('request object', () => {
             const payload = JSON.parse(await response.text());
 
             assert.equal(payload.method, 'POST');
-            assert.equal(payload.url, '/request.cat?name=koneko&count=2');
-            assert.equal(payload.path, '/request.cat');
+            assert.equal(payload.url, '/request/metadata.cat?name=koneko&count=2');
+            assert.equal(payload.path, '/request/metadata.cat');
             assert.equal(payload.headerValue, 'header-value');
-            assert.deepEqual(payload.body, {
-                type: 'json',
-                data: { hello: 'world', n: 1 },
-            });
             assert.deepEqual(payload.query, {
                 name: 'koneko',
                 count: '2',
@@ -109,6 +105,102 @@ describe('request object', () => {
         assert.equal(getStderr(), '');
     });
 
+    test('exposes JSON body via request.body.json()', async () => {
+        const { baseUrl, close, getStderr } = await startCliServe();
+        try {
+            const response = await fetch(`${baseUrl}/request/json-body.cat`, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                },
+                body: JSON.stringify({ hello: 'world', n: 1 }),
+            });
+
+            assert.equal(response.status, 200);
+            const payload = JSON.parse(await response.text());
+
+            assert.deepEqual(payload.body, {
+                type: 'json',
+                data: { hello: 'world', n: 1 },
+            });
+        } finally {
+            await close();
+        }
+
+        assert.equal(getStderr(), '');
+    });
+
+    test('exposes text body via request.body.text()', async () => {
+        const { baseUrl, close, getStderr } = await startCliServe();
+        try {
+            const response = await fetch(`${baseUrl}/request/text-body.cat`, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'text/plain',
+                },
+                body: 'hello text body',
+            });
+
+            assert.equal(response.status, 200);
+            const payload = JSON.parse(await response.text());
+
+            assert.deepEqual(payload.body, {
+                type: 'text',
+                data: 'hello text body',
+            });
+        } finally {
+            await close();
+        }
+
+        assert.equal(getStderr(), '');
+    });
+
+    test('exposes raw body bytes via request.body.arrayBuffer()', async () => {
+        const { baseUrl, close, getStderr } = await startCliServe();
+        try {
+            const response = await fetch(`${baseUrl}/request/raw-body.cat`, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/octet-stream',
+                },
+                body: new Uint8Array([1, 2, 3, 255]),
+            });
+
+            assert.equal(response.status, 200);
+            const payload = JSON.parse(await response.text());
+
+            assert.deepEqual(payload.body, {
+                type: 'raw',
+                data: [1, 2, 3, 255],
+            });
+        } finally {
+            await close();
+        }
+
+        assert.equal(getStderr(), '');
+    });
+
+    test('fails when reading body with wrong content type method', async () => {
+        const { baseUrl, close, getStderr } = await startCliServe();
+        try {
+            const response = await fetch(`${baseUrl}/request/wrong-json-on-text.cat`, {
+                method: 'POST',
+                headers: {
+                    'content-type': 'text/plain',
+                },
+                body: 'not-json',
+            });
+
+            assert.equal(response.status, 500);
+            const html = await response.text();
+            assert.match(html, /Body does not match the expected type \(application\/json\)/);
+        } finally {
+            await close();
+        }
+
+        assert.equal(getStderr(), '');
+    });
+
     test('exposes multipart form-data body fields', async () => {
         const { baseUrl, close, getStderr } = await startCliServe();
         try {
@@ -116,7 +208,7 @@ describe('request object', () => {
             form.set('title', 'koneko');
             form.set('count', '2');
 
-            const response = await fetch(`${baseUrl}/form-data.cat`, {
+            const response = await fetch(`${baseUrl}/form-data/fields.cat`, {
                 method: 'POST',
                 body: form,
             });
@@ -129,10 +221,6 @@ describe('request object', () => {
                 title: 'koneko',
                 count: '2',
             });
-            assert.equal(payload.uploadIsArray, false);
-            assert.equal(payload.uploadBinaryIsArray, false);
-            assert.equal(payload.file, null);
-            assert.equal(payload.binaryFile, null);
         } finally {
             await close();
         }
@@ -148,7 +236,7 @@ describe('request object', () => {
             form.set('count', '2');
             form.set('upload', new Blob(['hello from file'], { type: 'text/plain' }), 'hello.txt');
 
-            const response = await fetch(`${baseUrl}/form-data.cat`, {
+            const response = await fetch(`${baseUrl}/form-data/text-file.cat`, {
                 method: 'POST',
                 body: form,
             });
@@ -161,15 +249,12 @@ describe('request object', () => {
                 title: 'koneko',
                 count: '2',
             });
-            assert.equal(payload.uploadIsArray, true);
-            assert.equal(payload.uploadBinaryIsArray, false);
             assert.equal(payload.file.name, 'hello.txt');
             assert.equal(payload.file.mimetype, 'text/plain');
             assert.equal(payload.file.hasRead, true);
             assert.equal(payload.file.text, 'hello from file');
             assert.equal(typeof payload.file.size, 'number');
             assert.ok(payload.file.size > 0);
-            assert.equal(payload.binaryFile, null);
         } finally {
             await close();
         }
@@ -189,7 +274,7 @@ describe('request object', () => {
                 'data.bin',
             );
 
-            const response = await fetch(`${baseUrl}/form-data.cat`, {
+            const response = await fetch(`${baseUrl}/form-data/binary-file.cat`, {
                 method: 'POST',
                 body: form,
             });
@@ -198,8 +283,6 @@ describe('request object', () => {
             const payload = JSON.parse(await response.text());
 
             assert.equal(payload.type, 'form-data');
-            assert.equal(payload.uploadIsArray, false);
-            assert.equal(payload.uploadBinaryIsArray, true);
             assert.equal(payload.binaryFile.name, 'data.bin');
             assert.equal(payload.binaryFile.mimetype, 'application/octet-stream');
             assert.equal(typeof payload.binaryFile.size, 'number');
@@ -220,7 +303,7 @@ describe('request object', () => {
             form.append('uploadMulti', new Blob(['first file'], { type: 'text/plain' }), 'first.txt');
             form.append('uploadMulti', new Blob(['second file'], { type: 'text/plain' }), 'second.txt');
 
-            const response = await fetch(`${baseUrl}/form-data.cat`, {
+            const response = await fetch(`${baseUrl}/form-data/multi-file.cat`, {
                 method: 'POST',
                 body: form,
             });
@@ -229,8 +312,6 @@ describe('request object', () => {
             const payload = JSON.parse(await response.text());
 
             assert.equal(payload.type, 'form-data');
-            assert.equal(payload.uploadIsArray, false);
-            assert.equal(payload.uploadBinaryIsArray, false);
             assert.ok(Array.isArray(payload.multiFiles));
             assert.equal(payload.multiFiles.length, 2);
 
