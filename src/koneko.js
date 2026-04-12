@@ -23,6 +23,12 @@ import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
 
+function normalizeFilePath(filePath) {
+    if(filePath.startsWith('./')) filePath = filePath.slice(2);
+    if(!filePath.startsWith('/')) filePath = '/' + filePath;
+    return filePath.replace(/\\/g, '/').replace(/^\/+/, '/');
+}
+
 export class Koneko {
     constructor(options = {}) {
         this.isolatePool = new IsolatePool(options.isolateCount, options.memoryLimit);
@@ -87,8 +93,10 @@ export class Koneko {
         return siteWorker;
     }
 
-    async runTemplate(fnName, site, request) {
-        const body = await site.evalClosure(`return ${fnName}($0)`, [new ivm.ExternalCopy(request).copyInto()], {
+    async runTemplate(filePath, site, request) {
+        const fnName = site.compiledFns.get(filePath);
+        if(!fnName) throw new Error('Template not compiled: ' + filePath);
+        const body = await site.evalClosure(`return ${fnName}($0, $1)`, [new ivm.ExternalCopy(request).copyInto(), new ivm.ExternalCopy(filePath).copyInto()], {
             timeout: this.wallTimeout,
             result: { promise: true, copy: true },
             arguments: { reference: false },
@@ -102,11 +110,13 @@ export class Koneko {
         const templateCode = compileTemplate(code, '__template');
         const fn = await site.compileScript(templateCode);
         await site.runScript(fn);
+        site.compiledFns.set('__template', '__template');
         return await this.runTemplate('__template', site, request);
     }
 
     async renderFile(filePath, { siteId, siteRoot, request }) {
         // Validate file path
+        filePath = normalizeFilePath(filePath);
         const fullSitePath = path.resolve(siteRoot);
         const fullFilePath = path.join(fullSitePath, filePath);
         if(!fullFilePath.startsWith(fullSitePath + path.sep)) {
@@ -127,13 +137,13 @@ export class Koneko {
         }
 
         const site = await this.acquireSite(siteId, siteRoot);
-        let fn = site.compiledFns.has(templateKey);
+        let fn = site.compiledFns.get(filePath);
         if(!fn) {
             const script = await site.compileScript(template);
             await site.runScript(script);
-            site.compiledFns.add(templateKey);
+            site.compiledFns.set(filePath, fnName);
         }
 
-        return await this.runTemplate(fnName, site, request);
+        return await this.runTemplate(filePath, site, request);
     }
 }

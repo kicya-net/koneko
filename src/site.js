@@ -25,7 +25,7 @@ export class SiteWorker {
         this.siteId = siteId;
         this.siteRoot = siteRoot;
         this.wallTimeout = koneko.wallTimeout;
-        this.compiledFns = new Set();
+        this.compiledFns = new Map(); // filePath -> fnName
         this.lastUsed = Date.now();
         this.active = false;
         this.koneko = koneko;

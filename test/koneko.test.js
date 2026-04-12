@@ -43,6 +43,17 @@ describe('Koneko', () => {
         assert.match(body, /<p>Test #9<\/p>/);
         assert.doesNotMatch(body, /Test #10/);
     });
+    test('includes the file path in the template function', async () => {
+        const { body, response } = await koneko.renderCode('<%- filePath %>', {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+        assert.equal(response.status, 200);
+        assert.equal(response.statusText, '');
+        assert.deepEqual(response.headers, {});
+        assert.match(body, /__template/);
+    });
 
     test('concurrent renderFile for the same file completes for all requests', async () => {
         const concurrent = new Koneko({
