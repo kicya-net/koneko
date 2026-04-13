@@ -198,7 +198,7 @@ describe('request object', () => {
             await close();
         }
 
-        assert.equal(getStderr(), '');
+        assert.match(getStderr(), /Body does not match the expected type \(application\/json\)/);
     });
 
     test('exposes multipart form-data body fields', async () => {
