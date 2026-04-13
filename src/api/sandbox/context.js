@@ -30,6 +30,9 @@ function createBody(body) {
             json() {
                 throw new Error('Body does not match the expected type (application/json)');
             },
+            urlencoded() {
+                throw new Error('Body does not match the expected type (application/x-www-form-urlencoded)');
+            },
             arrayBuffer() {
                 throw new Error('Body does not match the expected type (application/octet-stream)');
             },
@@ -52,6 +55,10 @@ function createBody(body) {
         },
         arrayBuffer() {
             if(body.type !== 'raw') throw new Error('Body does not match the expected type (application/octet-stream)');
+            return body.data.copy();
+        },
+        urlencoded() {
+            if(body.type !== 'urlencoded') throw new Error('Body does not match the expected type (application/x-www-form-urlencoded)');
             return body.data.copy();
         },
         formData() {

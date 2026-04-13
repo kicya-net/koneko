@@ -1,4 +1,7 @@
-function normalizeDebugValue(value, seen = new WeakSet()) {
+function normalizeDebugValue(value, seen = new WeakSet(), depth = 0) {
+    if(depth > 10) {
+        return '[...]';
+    }
     if(value == null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
         return value;
     }
@@ -29,11 +32,11 @@ function normalizeDebugValue(value, seen = new WeakSet()) {
     }
     seen.add(value);
     if(Array.isArray(value)) {
-        return value.map((item) => normalizeDebugValue(item, seen));
+        return value.map((item) => normalizeDebugValue(item, seen, depth + 1));
     }
     const out = {};
     for(const key of Object.keys(value)) {
-        out[key] = normalizeDebugValue(value[key], seen);
+        out[key] = normalizeDebugValue(value[key], seen, depth + 1);
     }
     return out;
 }

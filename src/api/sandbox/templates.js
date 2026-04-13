@@ -2,6 +2,7 @@ const templates = Object.create(null);
 const templateKeys = Object.create(null);
 const templateCheckedAt = Object.create(null);
 const templateCheckIntervalMs = 500;
+const _eval = globalThis.eval;
 
 async function ensureTemplate(filePath) {
     if(filePath === '__template' && filePath in templates) {
@@ -28,7 +29,7 @@ async function ensureTemplate(filePath) {
     });
     const code = loaded.code;
     templateKey = loaded.templateKey;
-    globalThis.eval(code);
+    _eval(code);
     templateKeys[filePath] = templateKey;
     templateCheckedAt[filePath] = Date.now();
     if(!(filePath in templates)) {
