@@ -1,6 +1,6 @@
 # Koneko
 
-Server-side HTML pre-processor for multi-tenant web hosting.
+Secure template pre-processor for multi-tenant web hosting.
 
 ## CLI
 
