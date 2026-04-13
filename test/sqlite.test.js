@@ -144,6 +144,39 @@ describe('require("sqlite")', () => {
         assert.equal(out, '{"inserted":{"changes":1,"lastInsertRowid":1},"queried":{"rows":[{"value":"ok"}]}}');
     });
 
+    test('concurrent sqlite renders with one isolate complete without abandoning promises', async () => {
+        await __clearSqliteCache();
+        const concurrentKoneko = new Koneko({
+            isolateCount: 1,
+            memoryLimit: 32,
+            cpuTimeout: 50,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const results = await Promise.all(
+            Array.from({ length: 8 }, (_, index) => concurrentKoneko.renderCode(`
+                <%
+                    const db = require("sqlite").open("concurrent");
+                    await db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)");
+                    await db.run("INSERT INTO users (name) VALUES (?)", ["koneko-${index}"]);
+                    const row = await db.get("SELECT name FROM users WHERE id = ?", [${index + 1}]);
+                %>
+                <%- JSON.stringify(row) %>
+            `, {
+                siteId: 'sqlite-concurrent',
+                siteRoot,
+                sqliteDir,
+                request: {},
+            })),
+        );
+
+        assert.equal(results.length, 8);
+        for(const { body, response } of results) {
+            assert.equal(response.status, 200);
+            assert.match(body, /"koneko-/);
+        }
+    });
+
     test('reuses cached sqlite clients across requests for the same directory and database name', async () => {
         await __clearSqliteCache();
         assert.equal(__sqliteCacheSize(), 0);

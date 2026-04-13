@@ -84,6 +84,7 @@ export class IsolatePool {
     acquire(timeout = 5000) {
         const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
         if (free) {
+            free.busy = true;
             return Promise.resolve(free);
         }
     
@@ -95,6 +96,7 @@ export class IsolatePool {
                     if (idx !== -1) this.queue.splice(idx, 1);
                     const free = this.isolates.find(p => !p.busy && !p.i.isDisposed);
                     if (free) {
+                        free.busy = true;
                         entry.resolve(free);
                         return;
                     }
@@ -112,6 +114,7 @@ export class IsolatePool {
         if (this.queue.length > 0 && !isolate.i.isDisposed) {
             const entry = this.queue.shift();
             clearTimeout(entry.timer);
+            isolate.busy = true;
             entry.resolve(isolate);
         }
     }

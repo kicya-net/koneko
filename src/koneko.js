@@ -60,7 +60,7 @@ export class Koneko {
         }
     
         for (const [entryId, entry] of this.sites) {
-            if (entry.active) continue;
+            if (entry.isolate.busy) continue;
             if (entry.isolate.i.isDisposed) {
                 this.sites.delete(entryId);
                 continue;
@@ -87,12 +87,14 @@ export class Koneko {
                 && !entry.isolate.busy
                 && !entry.isolate.i.isDisposed
             ) {
+                entry.setBusy(true);
                 return entry;
             }
         }
 
         const siteWorker = new SiteWorker(siteId, resolvedSiteRoot, normalizedSqliteDir, this);
         await siteWorker.init();
+        siteWorker.setBusy(true);
         siteWorker.isolate.on('dispose', () => this.sites.delete(siteWorker.entryId));
         this.sites.set(siteWorker.entryId, siteWorker);
         
@@ -114,15 +116,23 @@ export class Koneko {
 
     async renderCode(code, { siteId, siteRoot, request, sqliteDir = null }) {
         const site = await this.acquireSite(siteId, siteRoot, sqliteDir);
-        const templateCode = compileTemplate(code, '__template');
-        const fn = await site.compileScript(templateCode);
-        await site.runScript(fn);
-        return await this.runTemplate('__template', site, request);
+        try {
+            const templateCode = compileTemplate(code, '__template');
+            const fn = await site.compileScript(templateCode);
+            await site.runScript(fn);
+            return await this.runTemplate('__template', site, request);
+        } finally {
+            site.setBusy(false);
+        }
     }
 
     async renderFile(filePath, { siteId, siteRoot, request, sqliteDir = null }) {
         filePath = normalizeFilePath(filePath);
         const site = await this.acquireSite(siteId, siteRoot, sqliteDir);
-        return await this.runTemplate(filePath, site, request);
+        try {
+            return await this.runTemplate(filePath, site, request);
+        } finally {
+            site.setBusy(false);
+        }
     }
 }

@@ -27,25 +27,32 @@ export class SiteWorker {
         this.sqliteDir = sqliteDir;
         this.wallTimeout = koneko.wallTimeout;
         this.lastUsed = Date.now();
-        this.active = false;
         this.koneko = koneko;
     }
     async init() {
         this.isolate = await this.koneko.isolatePool.acquire();
-        this.entryId = `${this.siteId}:${this.isolate.id}`;
-        this.context = await this.isolate.i.createContext();
+        try {
+            this.entryId = `${this.siteId}:${this.isolate.id}`;
+            this.context = await this.isolate.i.createContext();
 
-        const resolvedSiteRoot = path.resolve(this.siteRoot);
-        if(resolvedSiteRoot !== this.siteRoot) {
-            this.siteRoot = resolvedSiteRoot;
+            const resolvedSiteRoot = path.resolve(this.siteRoot);
+            if(resolvedSiteRoot !== this.siteRoot) {
+                this.siteRoot = resolvedSiteRoot;
+            }
+            await createApis(this);
+        } catch (err) {
+            this.isolate.dispose();
+            throw err;
+        } finally {
+            if(this.isolate && this.isolate.busy) {
+                this.koneko.isolatePool.release(this.isolate);
+            }
         }
-        await createApis(this);
     }
-    setActive(active) {
-        this.isolate.busy = active;
-        this.active = active;
+    setBusy(busy) {
+        this.isolate.busy = busy;
         this.lastUsed = Date.now();
-        if(!active) {
+        if(!busy) {
             this.koneko.isolatePool.release(this.isolate);
         }
     }
@@ -70,7 +77,6 @@ export class SiteWorker {
         }
     }
     async runWithWatchdog(fn) {
-        this.setActive(true);
         const cpuTimeBefore = this.isolate.i.cpuTime;
         const task = {
             isolate: this.isolate,
@@ -85,7 +91,6 @@ export class SiteWorker {
             throw err;
         } finally {
             this.koneko.watchdogTasks.delete(task);
-            this.setActive(false);
         }
     }
 }
