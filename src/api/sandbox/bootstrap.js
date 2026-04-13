@@ -190,13 +190,22 @@
         return _require('path').resolveRequire(fromFilePath, requiredPath);
     }
 
-    function kcBridge(op) {
-        const args = Array.prototype.slice.call(arguments, 1);
-        return $cryptoBridge.applySync(undefined, [op].concat(args), {
-            arguments: { copy: true },
-            result: { copy: true },
-        });
-    }
+    const internals = Object.freeze({
+        cryptoInvoke(op) {
+            const args = Array.prototype.slice.call(arguments, 1);
+            return $cryptoBridge.applySync(undefined, [op].concat(args), {
+                arguments: { copy: true },
+                result: { copy: true },
+            });
+        },
+        fsInvoke(op) {
+            const args = Array.prototype.slice.call(arguments, 1);
+            return $fsBridge.apply(undefined, [op].concat(args), {
+                arguments: { copy: true },
+                result: { promise: true, copy: true },
+            });
+        },
+    });
 
     function _require(filePath) {
         const cachedModule = requireCache.get(filePath);
@@ -214,13 +223,13 @@
                 arguments: { copy: true },
             });
         const moduleFactory = isInternal
-            ? new Function('module', 'exports', 'require', '_kc', code)
+            ? new Function('module', 'exports', 'require', 'internals', code)
             : new Function('module', 'exports', 'require', code);
         const childRequire = function(requiredPath) {
             return _require(resolveRequire(filePath, requiredPath));
         };
         if(isInternal) {
-            moduleFactory(module, exports, childRequire, kcBridge);
+            moduleFactory(module, exports, childRequire, internals);
         } else {
             moduleFactory(module, exports, childRequire);
         }

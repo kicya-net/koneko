@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { compileTemplate } from '../compile.js';
-import { cryptoBridge } from './crypto-bridge.js';
+import { cryptoBridge } from './crypto.js';
+import { createFsBridge } from './fs.js';
 import { safeFetch } from './net.js';
 
 const sandboxDir = new URL('./sandbox/', import.meta.url);
@@ -79,11 +80,13 @@ export async function createApis(siteWorker) {
         return compiledTemplateCode;
     }
 
+    const fsBridge = createFsBridge(siteWorker.siteRoot);
     const [code, args] = buildSandboxClosure(SANDBOX_CODE, {
         getModule,
         getTemplateCode,
         safeFetch: async (url, options) => safeFetch(url, options),
         cryptoBridge,
+        fsBridge,
     });
 
     await siteWorker.context.evalClosure(code, args, {

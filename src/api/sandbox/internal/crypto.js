@@ -1,6 +1,6 @@
 function bridge(op) {
     const args = Array.prototype.slice.call(arguments, 1);
-    return _kc.apply(undefined, [op].concat(args));
+    return internals.cryptoInvoke.apply(internals, [op].concat(args));
 }
 
 const crypto = {
@@ -36,6 +36,12 @@ const crypto = {
     },
     timingSafeEqual(a, b) {
         return bridge('timingSafeEqual', String(a), String(b));
+    },
+    base64UrlEncode(str) {
+        return bridge('base64UrlEncode', String(str));
+    },
+    base64UrlDecode(str) {
+        return bridge('base64UrlDecode', String(str));
     },
 };
 
