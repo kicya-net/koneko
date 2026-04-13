@@ -4,36 +4,48 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 
 ## CLI
 
-Use the CLI to serve a project root. By default, HTTP routing comes from `public/`. CLI takes `.env` file for the default values.
+```bash
+  Usage: koneko [options] [command]
+  
+  Commands:
+    help   Display help
+    http   Run internal Koneko HTTP API server
+    serve  Serve a project
+  
+  Options:
+    -c, --clean             Render files without .cat extension
+    -C, --cpu-timeout <n>   The CPU timeout for each isolate in milliseconds
+    -f, --file-size <n>     The maximum file size to accept in MB
+    -H, --help              Output usage information
+    -h, --host              The host to run the server on
+    -i, --isolates <n>      The number of isolates to run
+    -m, --memory <n>        The memory limit for each isolate in MB
+    -p, --port <n>          The port to run the server on
+    -P, --public <value>    Public directory to serve
+    -s, --sock              The path to the socket file
+    -S, --sqlite-dir        Folder containing SQLite databases
+    -t, --threads <n>       The number of worker threads to run
+    -w, --wall-timeout <n>  The wall timeout for each isolate in milliseconds
+  
+  Examples:
+    - Serve the current project using ./public
+    $ koneko serve .
 
-Help:
-```bash
-npx koneko help
-```
-Serve a project:
-```bash
-npx koneko serve .
-    --threads 2
-    --clean
-    --isolates 25
-    --memory 64
-    --cpu-timeout 25
-    --wall-timeout 5000
-    --file-size 20
-    --sqlite-dir ./dbs
-    --public ./public
+    - Serve the current project using ./www
+    $ koneko serve . --public www
+
+    - Run internal Koneko HTTP service
+    $ koneko http --port 3000
 ```
 
-Use a custom public directory:
-```bash
-npx koneko serve . --public www
-```
+CLI will take `.env` file for the default values.
 
 ## .env
 
 - HOST: The host to run the server on.
 - PORT: The port to run the server on.
 - SOCK_PATH: The path to the socket file. If set, the server will listen on the socket file instead of the port.
+- SQLITE_DIR: The folder containing SQLite databases.
 - PUBLIC_DIR: The public directory inside the project root. Defaults to `public`.
 - NUM_THREADS: The number of threads to run. By default, it will use MIN(4, CPU cores).
 - ISOLATES_PER_THREAD: The number of isolates to run per thread. By default, it will create 10 isolates per thread.
