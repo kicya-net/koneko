@@ -90,6 +90,7 @@ async function serve(name, sub, options) {
             wallTimeout: options.wallTimeout,
         },
     }));
+    app.use(express.static(fullPublicDir));
     app.use((err, req, res, next) => {
         console.error(err);
         res.status(500).send(generateError(500, err?.stack ?? String(err)));
