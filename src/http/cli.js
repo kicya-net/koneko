@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import 'dotenv/config';
 import express from 'ultimate-express';
 import { konekoMiddleware } from './middleware.js';
@@ -73,6 +74,13 @@ async function serve(name, sub, options) {
             wallTimeout: options.wallTimeout,
         },
     }));
+    app.use((err, req, res, next) => {
+        console.error(err);
+        res.status(500).send(generateError(500, err.stack));
+    });
+    app.use((req, res, next) => {
+        res.status(404).send(generateError(404, 'Not found'));
+    });
     app.listen(options.sock ?? options.port);
 }
 

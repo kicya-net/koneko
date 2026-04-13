@@ -2,7 +2,7 @@
   "name": "koneko",
   "version": "1.0.0",
   "description": "Server-side HTML pre-processor for multi-tenant web hosting.",
-  "main": "src/http/cluster.js",
+  "main": "src/http/cli.js",
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.js",
@@ -13,6 +13,9 @@
   "files": [
     "src"
   ],
+  "bin": {
+    "koneko": "src/http/cli.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kicya-net/koneko.git"
