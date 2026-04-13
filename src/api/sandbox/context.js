@@ -68,13 +68,7 @@ function createBody(body) {
 }
 
 function createContext(req) {
-    const response = {
-        status: 200,
-        statusText: '',
-        headers: new Headers(),
-        debugLogs: [],
-    };
-    return {
+    const ctx = {
         request: {
             url: req?.url,
             path: req?.path,
@@ -84,7 +78,16 @@ function createContext(req) {
             query: req?.query,
             cookies: req?.cookies,
         },
-        response,
+        response: null,
         out: [],
     };
+    const response = {
+        status: 200,
+        statusText: '',
+        headers: new Headers(),
+        debugLogs: [],
+        _timeouts: new Set(),
+    };
+    ctx.response = response;
+    return ctx;
 }

@@ -12,7 +12,7 @@ const assetsRoot = join(__dirname, 'assets');
 
 const koneko = new Koneko({
     isolateCount: 1,
-    memoryLimit: 32,
+    memoryLimit: 128,
     cpuTimeout: 50,
 });
 
@@ -150,6 +150,26 @@ describe('Koneko', () => {
             decoded: 'hello',
             roundTrip: 'koneko',
         });
+    });
+
+    test('supports setTimeout in the sandbox', async () => {
+        const { body, response } = await koneko.renderCode(`
+            <%
+                let done = false;
+                await new Promise((resolve) => setTimeout(() => {
+                    done = true;
+                    resolve();
+                }, 5));
+            %>
+            <%= done %>
+        `, {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+
+        assert.equal(response.status, 200);
+        assert.equal(body.trim(), 'true');
     });
 
     test('concurrent renderFile for the same file completes for all requests', async () => {

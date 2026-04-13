@@ -44,18 +44,22 @@ function _regTemplate(name, fn) {
 async function _runTemplate(req, filePath, locals) {
     await ensureTemplate(filePath);
     const ctx = createContext(req);
-    await withResponse(ctx.response, async function() {
-        await templates[filePath](ctx, filePath, locals || {});
-    });
-    const body = injectDebugScript(ctx.out.join(''), ctx.response);
-    return {
-        body,
-        response: {
-            status: ctx.response.status,
-            statusText: ctx.response.statusText,
-            headers: Object.fromEntries(ctx.response.headers.entries()),
-        },
-    };
+    try {
+        await withResponse(ctx.response, async function() {
+            await templates[filePath](ctx, filePath, locals || {});
+        });
+        const body = injectDebugScript(ctx.out.join(''), ctx.response);
+        return {
+            body,
+            response: {
+                status: ctx.response.status,
+                statusText: ctx.response.statusText,
+                headers: Object.fromEntries(ctx.response.headers.entries()),
+            },
+        };
+    } finally {
+        clearPendingResponseTimeouts(ctx.response);
+    }
 }
 
 async function _includeTemplate(fromFilePath, includePath, locals, ctx) {

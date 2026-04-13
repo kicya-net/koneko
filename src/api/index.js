@@ -6,7 +6,6 @@ import { createSqliteBridge } from './db.js';
 import { createFsBridge } from './fs.js';
 import { safeFetch } from './net.js';
 
-const sandboxDir = new URL('./sandbox/', import.meta.url);
 const internalSandboxDir = new URL('./sandbox/internal/', import.meta.url);
 const internalModuleCodes = Object.fromEntries(
     fs.readdirSync(internalSandboxDir)
@@ -19,6 +18,8 @@ const sandboxFiles = [
     'response.js',
     'base64.js',
     'runtime.js',
+    'textencoder.js',
+    'url.js',
     'debug.js',
     'context.js',
     'require.js',
@@ -108,6 +109,23 @@ export async function createApis(siteWorker) {
         cryptoBridge,
         fsBridge,
         sqliteBridge,
+        parseUrl(url, base) {
+            const parsed = base == null ? new URL(url) : new URL(url, base);
+            return {
+                protocol: parsed.protocol,
+                username: parsed.username,
+                password: parsed.password,
+                hostname: parsed.hostname,
+                port: parsed.port,
+                pathname: parsed.pathname,
+                search: parsed.search,
+                hash: parsed.hash,
+            };
+        },
+        sleep(ms) {
+            const delay = Math.max(0, Math.min(Number(ms) || 0, siteWorker.wallTimeout));
+            return new Promise((resolve) => setTimeout(resolve, delay));
+        },
         internalModuleCodes: () => internalModuleCodes,
     });
 
