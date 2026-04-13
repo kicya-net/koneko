@@ -40,7 +40,7 @@ async function waitForServer(url, timeoutMs = 8000) {
 
 async function startCliServe() {
     const port = await getFreePort();
-    const args = [cliPath, 'serve', assetsRoot, '--port', String(port)];
+    const args = [cliPath, 'serve', assetsRoot, '--public', '.', '--port', String(port)];
 
     const child = spawn(process.execPath, args, {
         stdio: ['ignore', 'pipe', 'pipe'],

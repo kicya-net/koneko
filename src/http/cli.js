@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import express from 'ultimate-express';
 import { konekoMiddleware } from './middleware.js';
+import { generateError } from './utils.js';
 import args from 'args';
 import cluster from 'node:cluster';
 import fs from 'node:fs';
@@ -15,17 +16,19 @@ args
     .option('isolates', 'The number of isolates to run', process.env.ISOLATES_PER_THREAD ? Number(process.env.ISOLATES_PER_THREAD) : 40)
     .option('clean', 'Render files without .cat extension', process.env.CLEAN ? Boolean(process.env.CLEAN) : false)
     .option('file-size', 'The maximum file size to accept in MB', process.env.MAX_FILE_SIZE_MB ? Number(process.env.MAX_FILE_SIZE_MB) : 20)
+    .option('public', 'Public directory to serve', process.env.PUBLIC_DIR ?? 'public')
     .option('sqlite-dir', 'Folder containing SQLite databases')
     .option('memory', 'The memory limit for each isolate in MB', process.env.ISOLATE_MEMORY_LIMIT_MB ? Number(process.env.ISOLATE_MEMORY_LIMIT_MB) : 64)
     .option('cpu-timeout', 'The CPU timeout for each isolate in milliseconds', process.env.ISOLATE_CPU_TIMEOUT ? Number(process.env.ISOLATE_CPU_TIMEOUT) : 25)
     .option('wall-timeout', 'The wall timeout for each isolate in milliseconds', process.env.ISOLATE_WALL_TIMEOUT ? Number(process.env.ISOLATE_WALL_TIMEOUT) : 5000)
-    .command('serve', 'Serve a folder', serve)
-    .example('koneko serve ./public', 'Serve a folder')
+    .command('serve', 'Serve a project', serve)
+    .example('koneko serve .', 'Serve the current project using ./public')
+    .example('koneko serve . --public www', 'Serve the current project using ./www')
 
 async function serve(name, sub, options) {
     const siteRoot = sub[0];
     if(!siteRoot) {
-        console.error('A folder is required. Example: koneko serve /path/to/files');
+        console.error('A project root is required. Example: koneko serve /path/to/project');
         process.exit(1);
     }
 
@@ -34,7 +37,13 @@ async function serve(name, sub, options) {
         process.exit(1);
     }
 
-    const fullSiteRoot = path.resolve(siteRoot);
+    const fullSiteRoot = path.isAbsolute(siteRoot) ? siteRoot : path.resolve(siteRoot);
+    const fullPublicDir = options.public == null ? fullSiteRoot : path.join(fullSiteRoot, options.public);
+
+    if(!fullPublicDir.startsWith(fullSiteRoot) && fullPublicDir !== fullSiteRoot) {
+        console.error('The --public value must be inside the project root');
+        process.exit(1);
+    }
 
     if (cluster.isPrimary) {
         if (options.sock) {
@@ -51,6 +60,7 @@ async function serve(name, sub, options) {
             cluster.fork();
         });
         console.log(`Serving ${fullSiteRoot} at ${options.sock ?? options.port}`);
+        console.log(`- Public dir: ${fullPublicDir}`);
         console.log(`- Threads: ${options.threads}`);
         console.log(`- Isolate count per process: ${options.isolates}`);
         console.log(`- Memory limit: ${options.memory} MB`);
@@ -65,6 +75,7 @@ async function serve(name, sub, options) {
     const app = express();
     app.use(konekoMiddleware({
         siteRoot: fullSiteRoot,
+        publicDir: fullPublicDir,
         sqliteDir: options.sqliteDir,
         clean: options.clean,
         konekoOptions: {
@@ -75,8 +86,7 @@ async function serve(name, sub, options) {
         },
     }));
     app.use((err, req, res, next) => {
-        console.error(err);
-        res.status(500).send(generateError(500, err.stack));
+        res.status(500).send(generateError(500, err?.stack ?? String(err)));
     });
     app.use((req, res, next) => {
         res.status(404).send(generateError(404, 'Not found'));

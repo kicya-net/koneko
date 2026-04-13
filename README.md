@@ -4,16 +4,16 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 
 ## CLI
 
-Use the CLI to easily serve a folder with `.cat` and static files. CLI takes `.env` file for the default values.
+Use the CLI to serve a project root. By default, HTTP routing comes from `public/`. CLI takes `.env` file for the default values.
 
 Help:
 ```bash
-node src/http/cli.js help
+npx koneko help
 ```
-Serve a folder:
+Serve a project:
 ```bash
-node src/http/cli.js serve ./public
-    --processes 2
+npx koneko serve .
+    --threads 2
     --clean
     --isolates 25
     --memory 64
@@ -21,6 +21,12 @@ node src/http/cli.js serve ./public
     --wall-timeout 5000
     --file-size 20
     --sqlite-dir ./dbs
+    --public ./public
+```
+
+Use a custom public directory:
+```bash
+npx koneko serve . --public www
 ```
 
 ## .env
@@ -28,6 +34,7 @@ node src/http/cli.js serve ./public
 - HOST: The host to run the server on.
 - PORT: The port to run the server on.
 - SOCK_PATH: The path to the socket file. If set, the server will listen on the socket file instead of the port.
+- PUBLIC_DIR: The public directory inside the project root. Defaults to `public`.
 - NUM_THREADS: The number of threads to run. By default, it will use MIN(4, CPU cores).
 - ISOLATES_PER_THREAD: The number of isolates to run per thread. By default, it will create 10 isolates per thread.
 - HTTPS_PROXY: The HTTP(S) proxy to use for `fetch` requests.
