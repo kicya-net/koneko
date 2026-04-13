@@ -70,11 +70,10 @@ describe('Koneko', () => {
         assert.match(body, /<li data-file="\/_partials\/item\.cat">second<\/li>/);
     });
 
-    test('response.debug enables browser console replay for console methods', async () => {
+    test('console enables browser console replay for console methods', async () => {
         const { body, response } = await koneko.renderCode(`
             <html><body>
             <%
-                response.debug(true);
                 console.log("hello", { answer: 42 });
                 console.warn("careful");
                 console.error("</script><b>bad</b>");
@@ -99,9 +98,9 @@ describe('Koneko', () => {
         assert.match(body, /<\/script><\/body><\/html>\s*$/);
     });
 
-    test('response.debug does not inject into non-html responses', async () => {
+    test('console does not inject into non-html responses', async () => {
         const { body, response } = await koneko.renderCode(`
-            <% response.headers.set("content-type", "application/json"); response.debug(true); console.log("hidden"); %>
+            <% response.headers.set("content-type", "application/json"); console.log("hidden"); %>
             {"ok":true}
         `, {
             siteId: 'test-site',
@@ -115,15 +114,9 @@ describe('Koneko', () => {
         assert.match(body, /\{"ok":true\}/);
     });
 
-    test('response.debug(false) disables browser console replay', async () => {
+    test('does not inject browser console replay when there are no logs', async () => {
         const { body, response } = await koneko.renderCode(`
             <html><body>
-            <%
-                response.debug(true);
-                console.log("visible");
-                response.debug(false);
-                console.log("hidden");
-            %>
             <h1>No Debug</h1>
             </body></html>
         `, {
@@ -134,8 +127,6 @@ describe('Koneko', () => {
 
         assert.equal(response.status, 200);
         assert.doesNotMatch(body, /console\.log\(/);
-        assert.doesNotMatch(body, /"visible"/);
-        assert.doesNotMatch(body, /"hidden"/);
     });
 
     test('exposes atob and btoa globals', async () => {

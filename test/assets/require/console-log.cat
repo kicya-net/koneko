@@ -1,0 +1,4 @@
+<html><body>
+<% require("./console-log.js")(); %>
+<h1>Module Log</h1>
+</body></html>

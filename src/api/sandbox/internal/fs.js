@@ -1,7 +1,4 @@
-function hostFs(op) {
-    const args = Array.prototype.slice.call(arguments, 1);
-    return internals.fsInvoke.apply(internals, [op].concat(args));
-}
+const { fsInvoke } = require('__internals');
 
 const fs = {
     async readFile(filePath, encoding) {
@@ -10,16 +7,16 @@ const fs = {
             ? null
             : String(encoding).toLowerCase();
         if(enc === 'utf8' || enc === 'utf-8') {
-            return await hostFs('readFile', p, 'utf8');
+            return await fsInvoke('readFile', p, 'utf8');
         }
-        const bytes = await hostFs('readFile', p, 'buffer');
+        const bytes = await fsInvoke('readFile', p, 'buffer');
         return new Uint8Array(bytes).buffer;
     },
     readdir(dirPath) {
-        return hostFs('readdir', String(dirPath));
+        return fsInvoke('readdir', String(dirPath));
     },
     stat(filePath) {
-        return hostFs('stat', String(filePath));
+        return fsInvoke('stat', String(filePath));
     },
     async writeFile(filePath, data, encoding) {
         const p = String(filePath);
@@ -28,23 +25,23 @@ const fs = {
             if(enc !== 'utf8' && enc !== 'utf-8') {
                 throw new Error('writeFile with string data only supports utf-8');
             }
-            await hostFs('writeFile', p, { kind: 'utf8', data });
+            await fsInvoke('writeFile', p, { kind: 'utf8', data });
             return;
         }
         if(data instanceof Uint8Array) {
-            await hostFs('writeFile', p, { kind: 'buffer', data: Array.from(data) });
+            await fsInvoke('writeFile', p, { kind: 'buffer', data: Array.from(data) });
             return;
         }
         throw new TypeError('writeFile data must be string or Uint8Array');
     },
     mkdir(dirPath, options) {
-        return hostFs('mkdir', String(dirPath), options || {});
+        return fsInvoke('mkdir', String(dirPath), options || {});
     },
     rm(targetPath, options) {
-        return hostFs('rm', String(targetPath), options || {});
+        return fsInvoke('rm', String(targetPath), options || {});
     },
     rename(fromPath, toPath) {
-        return hostFs('rename', String(fromPath), String(toPath));
+        return fsInvoke('rename', String(fromPath), String(toPath));
     },
 };
 

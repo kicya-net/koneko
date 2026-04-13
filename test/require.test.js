@@ -88,4 +88,19 @@ describe('require()', () => {
         assert.deepEqual(response.headers, {});
         assert.equal(body.trim(), 'a:b:b:object');
     });
+
+    test('routes console.log from required modules into the active response', async () => {
+        const { body, response } = await koneko.renderFile('require/console-log.cat', {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+        assert.equal(response.status, 200);
+        assert.equal(response.statusText, '');
+        assert.deepEqual(response.headers, {});
+        assert.match(body, /<h1>Module Log<\/h1>/);
+        assert.match(body, /"from module"/);
+        assert.match(body, /"ok":true/);
+        assert.match(body, /console\[entry\.level\]/);
+    });
 });

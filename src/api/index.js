@@ -13,20 +13,20 @@ const internalModuleCodes = Object.fromEntries(
         .sort((a, b) => a.localeCompare(b))
         .map((name) => [name.slice(0, -3), fs.readFileSync(new URL(`./sandbox/internal/${name}`, import.meta.url), 'utf-8')]),
 );
-const sandboxFiles = fs.readdirSync(sandboxDir)
-    .filter((name) => name.endsWith('.js') && name !== 'prefix.js')
-    .sort((a, b) => {
-        if(a === 'bootstrap.js') return 1;
-        if(b === 'bootstrap.js') return -1;
-        return a.localeCompare(b);
-    });
+const sandboxFiles = [
+    'headers.js',
+    'response.js',
+    'base64.js',
+    'runtime.js',
+    'debug.js',
+    'context.js',
+    'require.js',
+    'templates.js',
+    'bootstrap.js',
+];
 const SANDBOX_CODE = sandboxFiles
     .map((name) => {
-        const code = fs.readFileSync(new URL(`./sandbox/${name}`, import.meta.url), 'utf-8');
-        if(name !== 'bootstrap.js') {
-            return code;
-        }
-        return code.replace('__INTERNAL_MODULE_CODES__', JSON.stringify(internalModuleCodes));
+        return fs.readFileSync(new URL(`./sandbox/${name}`, import.meta.url), 'utf-8');
     })
     .join('\n');
 
@@ -87,6 +87,7 @@ export async function createApis(siteWorker) {
         safeFetch: async (url, options) => safeFetch(url, options),
         cryptoBridge,
         fsBridge,
+        internalModuleCodes: () => internalModuleCodes,
     });
 
     await siteWorker.context.evalClosure(code, args, {
