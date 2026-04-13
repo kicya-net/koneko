@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { compileTemplate } from '../compile.js';
 import { cryptoBridge } from './crypto.js';
+import { createSqliteBridge } from './db.js';
 import { createFsBridge } from './fs.js';
 import { safeFetch } from './net.js';
 
@@ -81,12 +82,16 @@ export async function createApis(siteWorker) {
     }
 
     const fsBridge = createFsBridge(siteWorker.siteRoot);
+    const sqliteBridge = createSqliteBridge(siteWorker.sqliteDir, {
+        queryTimeoutMs: siteWorker.wallTimeout,
+    });
     const [code, args] = buildSandboxClosure(SANDBOX_CODE, {
         getModule,
         getTemplateCode,
         safeFetch: async (url, options) => safeFetch(url, options),
         cryptoBridge,
         fsBridge,
+        sqliteBridge,
         internalModuleCodes: () => internalModuleCodes,
     });
 

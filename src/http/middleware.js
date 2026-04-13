@@ -7,6 +7,7 @@ export function konekoMiddleware(options = {}) {
     const clean = options.clean ?? false;
     const koneko = options.koneko ?? new Koneko(options.konekoOptions);
     const siteRoot = options.siteRoot;
+    const sqliteDir = options.sqliteDir ?? null;
     if(!siteRoot) throw new Error('options.siteRoot is required');
     if(siteRoot !== path.resolve(siteRoot)) throw new Error('options.siteRoot must be an absolute path');
     const helpers = konekoHelpers(options.maxFileSize ?? 20 * 1024 * 1024);
@@ -33,7 +34,7 @@ export function konekoMiddleware(options = {}) {
         }
 
         try {
-            const body = await koneko.renderFile(filePath, { siteId, siteRoot, request: buildRequest(req) });
+            const body = await koneko.renderFile(filePath, { siteId, siteRoot, sqliteDir, request: buildRequest(req) });
             applyResponseHeaders(res, body.response.headers);
             res.status(body.response.status);
             res.send(body.body);

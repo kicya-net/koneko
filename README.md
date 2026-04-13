@@ -4,7 +4,6 @@ Server-side HTML pre-processor for multi-tenant web hosting.
 
 ## TODO
 
-- [ ] Database API
 - [ ] Proper error handling
 - [ ] Documentation
 
@@ -18,7 +17,15 @@ node src/http/cli.js help
 ```
 Serve a folder:
 ```bash
-node src/http/cli.js serve ./public --processes 2 --clean --isolates 25 --memory 64 --cpu-timeout 25 --wall-timeout 5000 --file-size 20
+node src/http/cli.js serve ./public
+    --processes 2
+    --clean
+    --isolates 25
+    --memory 64
+    --cpu-timeout 25
+    --wall-timeout 5000
+    --file-size 20
+    --sqlite-dir ./dbs
 ```
 
 ## .env

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createServer } from 'node:net';
+import fs from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
@@ -26,12 +26,13 @@ async function waitForServer(url, timeoutMs = 8000) {
     throw new Error(`Timed out waiting for server at ${url}`);
 }
 
-async function startCliServe(clean, { processes = 1, port = 13333 } = {}) {
-    const args = [cliPath, 'serve', assetsRoot, '--port', String(port)];
+async function startCliServe(clean, { cwd, port = 13333, siteRoot = assetsRoot, sqliteDir, threads = 1 } = {}) {
+    const args = [cliPath, 'serve', siteRoot, '--port', String(port), '--threads', String(threads)];
     if (clean) args.push('--clean');
-    args.push('--processes', String(processes));
+    if (sqliteDir) args.push('--sqlite-dir', sqliteDir);
 
     const child = spawn(process.execPath, args, {
+        cwd,
         stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -122,6 +123,33 @@ describe('CLI serve', () => {
         } finally {
             await close();
         }
+        assert.equal(getStderr(), '');
+    });
+
+    test('relative --sqlite-dir resolves from the process cwd', async () => {
+        const cwd = fs.mkdtempSync(join(__dirname, '.koneko-serve-cwd-'));
+        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-site-'));
+        fs.cpSync(assetsRoot, siteRoot, { recursive: true });
+
+        const { baseUrl, close, getStderr } = await startCliServe(false, {
+            cwd,
+            port: 13334,
+            siteRoot,
+            sqliteDir: 'dbs',
+        });
+
+        try {
+            const resp = await fetch(`${baseUrl}/sqlite.cat`);
+            assert.equal(resp.status, 200);
+            assert.match(await resp.text(), /"koneko"/);
+            assert.equal(fs.existsSync(join(cwd, 'dbs', 'main.sqlite')), true);
+            assert.equal(fs.existsSync(join(siteRoot, 'dbs')), false);
+        } finally {
+            await close();
+            fs.rmSync(cwd, { recursive: true, force: true });
+            fs.rmSync(siteRoot, { recursive: true, force: true });
+        }
+
         assert.equal(getStderr(), '');
     });
 });

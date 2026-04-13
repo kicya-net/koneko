@@ -20,6 +20,13 @@ const _internals = Object.freeze({
             result: { promise: true, copy: true },
         });
     },
+    sqliteInvoke(op) {
+        const args = Array.prototype.slice.call(arguments, 1);
+        return $sqliteBridge.apply(undefined, [op].concat(args), {
+            arguments: { copy: true },
+            result: { promise: true, copy: true },
+        });
+    },
 });
 
 function resolveRequire(fromFilePath, requiredPath) {

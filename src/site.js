@@ -18,12 +18,13 @@ import path from 'node:path';
 import { createApis } from './api/index.js';
 
 export class SiteWorker {
-    constructor(siteId, siteRoot, koneko) {
+    constructor(siteId, siteRoot, sqliteDir, koneko) {
         this.isolate = null;
         this.context = null;
         this.entryId = null;
         this.siteId = siteId;
         this.siteRoot = siteRoot;
+        this.sqliteDir = sqliteDir;
         this.wallTimeout = koneko.wallTimeout;
         this.lastUsed = Date.now();
         this.active = false;

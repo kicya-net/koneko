@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 import ivm from 'isolated-vm';
+import path from 'node:path';
 import { LRUCache } from 'lru-cache';
 import { IsolatePool } from './isolates.js';
 import { compileTemplate } from './compile.js';
@@ -75,14 +76,22 @@ export class Koneko {
             }
         }
     }
-    async acquireSite(siteId, siteRoot) {
+    async acquireSite(siteId, siteRoot, sqliteDir = null) {
+        const resolvedSiteRoot = path.resolve(siteRoot);
+        const normalizedSqliteDir = !sqliteDir ? null : path.resolve(String(sqliteDir));
         for (const entry of this.sites.values()) {
-            if (entry.siteId === siteId && !entry.isolate.busy && !entry.isolate.i.isDisposed) {
+            if (
+                entry.siteId === siteId
+                && entry.siteRoot === resolvedSiteRoot
+                && entry.sqliteDir === normalizedSqliteDir
+                && !entry.isolate.busy
+                && !entry.isolate.i.isDisposed
+            ) {
                 return entry;
             }
         }
 
-        const siteWorker = new SiteWorker(siteId, siteRoot, this);
+        const siteWorker = new SiteWorker(siteId, resolvedSiteRoot, normalizedSqliteDir, this);
         await siteWorker.init();
         siteWorker.isolate.on('dispose', () => this.sites.delete(siteWorker.entryId));
         this.sites.set(siteWorker.entryId, siteWorker);
@@ -103,17 +112,17 @@ export class Koneko {
         return body;
     }
 
-    async renderCode(code, { siteId, siteRoot, request }) {
-        const site = await this.acquireSite(siteId, siteRoot);
+    async renderCode(code, { siteId, siteRoot, request, sqliteDir = null }) {
+        const site = await this.acquireSite(siteId, siteRoot, sqliteDir);
         const templateCode = compileTemplate(code, '__template');
         const fn = await site.compileScript(templateCode);
         await site.runScript(fn);
         return await this.runTemplate('__template', site, request);
     }
 
-    async renderFile(filePath, { siteId, siteRoot, request }) {
+    async renderFile(filePath, { siteId, siteRoot, request, sqliteDir = null }) {
         filePath = normalizeFilePath(filePath);
-        const site = await this.acquireSite(siteId, siteRoot);
+        const site = await this.acquireSite(siteId, siteRoot, sqliteDir);
         return await this.runTemplate(filePath, site, request);
     }
 }

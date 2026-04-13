@@ -14,6 +14,7 @@ args
     .option('isolates', 'The number of isolates to run', process.env.ISOLATES_PER_THREAD ? Number(process.env.ISOLATES_PER_THREAD) : 40)
     .option('clean', 'Render files without .cat extension', process.env.CLEAN ? Boolean(process.env.CLEAN) : false)
     .option('file-size', 'The maximum file size to accept in MB', process.env.MAX_FILE_SIZE_MB ? Number(process.env.MAX_FILE_SIZE_MB) : 20)
+    .option('sqlite-dir', 'Folder containing SQLite databases')
     .option('memory', 'The memory limit for each isolate in MB', process.env.ISOLATE_MEMORY_LIMIT_MB ? Number(process.env.ISOLATE_MEMORY_LIMIT_MB) : 64)
     .option('cpu-timeout', 'The CPU timeout for each isolate in milliseconds', process.env.ISOLATE_CPU_TIMEOUT ? Number(process.env.ISOLATE_CPU_TIMEOUT) : 25)
     .option('wall-timeout', 'The wall timeout for each isolate in milliseconds', process.env.ISOLATE_WALL_TIMEOUT ? Number(process.env.ISOLATE_WALL_TIMEOUT) : 5000)
@@ -55,6 +56,7 @@ async function serve(name, sub, options) {
         console.log(`- CPU timeout: ${options.cpuTimeout} ms`);
         console.log(`- Wall timeout: ${options.wallTimeout} ms`);
         console.log(`- Max file size: ${options.fileSize} MB`);
+        console.log(`- SQLite dir: ${options.sqliteDir ?? '(disabled)'}`);
         console.log(`- Clean: ${options.clean}`);
         return;
     }
@@ -62,6 +64,7 @@ async function serve(name, sub, options) {
     const app = express();
     app.use(konekoMiddleware({
         siteRoot: fullSiteRoot,
+        sqliteDir: options.sqliteDir,
         clean: options.clean,
         konekoOptions: {
             isolateCount: options.isolates,

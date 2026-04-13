@@ -34,6 +34,7 @@ app.use(async (req, res) => {
 
     const siteId = req.get('X-Koneko-Site-Id') ?? req.hostname;
     const siteRoot = req.get('X-Koneko-Site-Root');
+    const sqliteDir = req.get('X-Koneko-Sqlite-Dir') ?? null;
     const filePath = req.get('X-Koneko-File-Path') ?? req.path;
     const request = buildRequest(req);
 
@@ -42,7 +43,7 @@ app.use(async (req, res) => {
     if(!filePath) return res.status(500).send(generateError(500, 'File path not set'));
     
     try {
-        const body = await koneko.renderFile(filePath, { siteId, siteRoot, request });
+        const body = await koneko.renderFile(filePath, { siteId, siteRoot, sqliteDir, request });
         applyResponseHeaders(res, body.response.headers);
         res.status(body.response.status);
         res.send(body.body);

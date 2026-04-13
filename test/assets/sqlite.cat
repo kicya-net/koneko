@@ -1,0 +1,13 @@
+<% 
+    const sqlite = require("sqlite");
+    const db = sqlite.open("main");
+    await db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)");
+    
+    let user = await db.get("SELECT name FROM users WHERE id = ?", [1]);
+    if(!user) {
+        await db.run("INSERT INTO users (name) VALUES (?)", ["koneko"]);
+        user = await db.get("SELECT name FROM users WHERE id = ?", [1]);
+    }
+%>
+<%- JSON.stringify({ user }) %>
+%> 
