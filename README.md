@@ -2,11 +2,6 @@
 
 Server-side HTML pre-processor for multi-tenant web hosting.
 
-## TODO
-
-- [ ] Proper error handling
-- [ ] Documentation
-
 ## CLI
 
 Use the CLI to easily serve a folder with `.cat` and static files. CLI takes `.env` file for the default values.

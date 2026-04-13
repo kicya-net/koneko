@@ -18,13 +18,69 @@ import ivm from 'isolated-vm';
 import path from 'node:path';
 import { LRUCache } from 'lru-cache';
 import { IsolatePool } from './isolates.js';
-import { compileTemplate } from './compile.js';
+import { compileTemplate, templateStackLineOffset } from './compile.js';
 import { SiteWorker } from './site.js';
 
 function normalizeFilePath(filePath) {
     if(filePath.startsWith('./')) filePath = filePath.slice(2);
     if(!filePath.startsWith('/')) filePath = '/' + filePath;
     return filePath.replace(/\\/g, '/').replace(/^\/+/, '/');
+}
+
+function normalizeSqliteDir(sqliteDir) {
+    if(sqliteDir == null || sqliteDir === '') {
+        return null;
+    }
+    return path.resolve(String(sqliteDir));
+}
+
+function normalizeRenderError(error, fallbackFilePath) {
+    if(!(error instanceof Error) || !error.stack) {
+        return error;
+    }
+    const lines = error.stack.split('\n');
+    if(lines.length < 2) {
+        return error;
+    }
+    const frames = [];
+    for(const line of lines.slice(1)) {
+        let match = line.match(/((?:\/|__template)[^:()]*)\:(\d+):(\d+)\)?$/);
+        if(match) {
+            let sourceLine = Number(match[2]);
+            if(match[1].endsWith('.js')) {
+                sourceLine = Math.max(1, sourceLine - 2);
+            } else {
+                if(sourceLine <= templateStackLineOffset) {
+                    continue;
+                }
+                sourceLine -= templateStackLineOffset;
+            }
+            const frame = `${match[1]}:${sourceLine}:${match[3]}`;
+            if(frames[frames.length - 1] !== frame) {
+                frames.push(frame);
+            }
+            continue;
+        }
+        match = line.match(/<anonymous>:(\d+):(\d+)\)?$/);
+        if(!match) {
+            continue;
+        }
+        const filePathMatch = line.match(/\[as ([^\]]+)\]/);
+        const filePath = filePathMatch?.[1] ?? fallbackFilePath;
+        const sourceLine = Number(match[1]) - templateStackLineOffset;
+        if(sourceLine < 1) {
+            continue;
+        }
+        const frame = `${filePath}:${sourceLine}:${match[2]}`;
+        if(frames[frames.length - 1] !== frame) {
+            frames.push(frame);
+        }
+    }
+    if(!frames.length) {
+        return error;
+    }
+    error.stack = `${lines[0]}\n${frames.map((frame) => `    at ${frame}`).join('\n')}`;
+    return error;
 }
 
 export class Koneko {
@@ -78,7 +134,7 @@ export class Koneko {
     }
     async acquireSite(siteId, siteRoot, sqliteDir = null) {
         const resolvedSiteRoot = path.resolve(siteRoot);
-        const normalizedSqliteDir = !sqliteDir ? null : path.resolve(String(sqliteDir));
+        const normalizedSqliteDir = normalizeSqliteDir(sqliteDir);
         for (const entry of this.sites.values()) {
             if (
                 entry.siteId === siteId
@@ -121,6 +177,8 @@ export class Koneko {
             const fn = await site.compileScript(templateCode);
             await site.runScript(fn);
             return await this.runTemplate('__template', site, request);
+        } catch (error) {
+            throw normalizeRenderError(error, '__template');
         } finally {
             site.setBusy(false);
         }
@@ -131,6 +189,8 @@ export class Koneko {
         const site = await this.acquireSite(siteId, siteRoot, sqliteDir);
         try {
             return await this.runTemplate(filePath, site, request);
+        } catch (error) {
+            throw normalizeRenderError(error, filePath);
         } finally {
             site.setBusy(false);
         }

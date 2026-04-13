@@ -51,7 +51,7 @@ function _require(filePath) {
         : $getModule.applySyncPromise(undefined, [filePath], {
             arguments: { copy: true },
         });
-    const moduleFactory = new Function('module', 'exports', 'require', code);
+    const moduleFactory = new Function('module', 'exports', 'require', `${code}\n//# sourceURL=${filePath}`);
     const childRequire = function(requiredPath) {
         if(requiredPath === '__internals') {
             return _internals;
@@ -76,7 +76,7 @@ globalThis._require = function(filePath) {
     const module = { exports: {} };
     __requireCache.set(filePath, module);
     const exports = module.exports;
-    const moduleFactory = new Function('module', 'exports', 'require', code);
+    const moduleFactory = new Function('module', 'exports', 'require', `${code}\n//# sourceURL=${filePath}`);
     moduleFactory(module, exports, function(path) {
         return globalThis._require(globalThis.path.resolveRequire(filePath, path));
     });

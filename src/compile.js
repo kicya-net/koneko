@@ -16,6 +16,7 @@ limitations under the License.
 import fs from 'node:fs';
 
 const prefix = fs.readFileSync(new URL('./api/sandbox/prefix.js', import.meta.url), 'utf-8');
+export const templateStackLineOffset = 1 + (prefix.endsWith('\n') ? prefix.split('\n').length - 1 : prefix.split('\n').length);
 
 function quote(str) {
     return "'" + str
@@ -104,13 +105,31 @@ export function compileTemplate(source, filePath = '__template') {
     while(i < source.length) {
         const tagStart = source.indexOf('<%', i);
         if (tagStart === -1) {
-            // no more tags
-            out += `__out.push(${quote(source.slice(i))});\n`;
+            const html = source.slice(i);
+            let htmlStart = 0;
+            while(htmlStart < html.length) {
+                const newlineIndex = html.indexOf('\n', htmlStart);
+                if(newlineIndex === -1) {
+                    out += `__out.push(${quote(html.slice(htmlStart))});\n`;
+                    break;
+                }
+                out += `__out.push(${quote(html.slice(htmlStart, newlineIndex + 1))});\n`;
+                htmlStart = newlineIndex + 1;
+            }
             break;
         }
         if (tagStart > i) {
-            // HTML before tag
-            out += `__out.push(${quote(source.slice(i, tagStart))});\n`;
+            const html = source.slice(i, tagStart);
+            let htmlStart = 0;
+            while(htmlStart < html.length) {
+                const newlineIndex = html.indexOf('\n', htmlStart);
+                if(newlineIndex === -1) {
+                    out += `__out.push(${quote(html.slice(htmlStart))});\n`;
+                    break;
+                }
+                out += `__out.push(${quote(html.slice(htmlStart, newlineIndex + 1))});\n`;
+                htmlStart = newlineIndex + 1;
+            }
         }
 
         // find closing tag
@@ -122,16 +141,19 @@ export function compileTemplate(source, filePath = '__template') {
         const inner = source.slice(tagStart + 2, tagEnd);
         if(inner[0] === '=') {
             // <%= expr %> - escaped output
-            out += `__out.push(escapeHtml(${stripLineComments(inner.slice(1).trim())}));\n`;
+            out += `__out.push(escapeHtml(${stripLineComments(inner.slice(1))}));\n`;
         } else if (inner[0] === '-') {
             // <%- expr %> - raw output
-            out += `__out.push(${stripLineComments(inner.slice(1).trim())});\n`;
+            out += `__out.push(${stripLineComments(inner.slice(1))});\n`;
           } else {
             // <% code %>
-            out += inner.trim() + '\n';
+            out += inner;
+            if(!inner.endsWith('\n')) {
+                out += '\n';
+            }
         }
         i = tagEnd + 2;
     }
-    out += '});';
+    out += `});\n//# sourceURL=${filePath}`;
     return out;
 }

@@ -53,7 +53,7 @@ describe('compile()', () => {
     test('assigns an async template function with echo pipeline', () => {
         const out = compileTemplate('hi');
         assert.match(out, /^__k\.reg\("__template", async function\(ctx, filePath, locals\) \{/);
-        assert.match(out, /\}\);$/);
+        assert.match(out, /\}\);\n\/\/# sourceURL=__template$/);
     });
 
     test('plain HTML is pushed as a single quoted chunk', async () => {

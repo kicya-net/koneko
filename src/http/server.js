@@ -49,7 +49,7 @@ app.use(async (req, res) => {
         res.send(body.body);
     } catch (err) {
         console.error(err);
-        return res.status(500).send(generateError(500, err.message));
+        return res.status(500).send(generateError(500, err.stack));
     }
 });
 

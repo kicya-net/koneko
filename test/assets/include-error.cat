@@ -1,0 +1,3 @@
+<div>
+<% await include('./_partials/error.cat'); %>
+</div>

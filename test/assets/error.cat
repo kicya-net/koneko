@@ -1,0 +1,6 @@
+<%
+    async function test() {
+        await include("./_partials/error.cat");
+    }
+    await test();
+%>

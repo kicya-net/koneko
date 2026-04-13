@@ -39,7 +39,7 @@ export function konekoMiddleware(options = {}) {
             res.status(body.response.status);
             res.send(body.body);
         } catch(e) {
-            return res.status(500).send(generateError(500, e.message));
+            return res.status(500).send(generateError(500, e.stack));
         }
     }
 

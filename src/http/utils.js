@@ -18,9 +18,12 @@ import fileUpload from 'express-fileupload';
 import express from 'ultimate-express';
 import cookie from 'cookie';
 
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
 
 export function generateError(status, message) {
-    return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><p>${message}</p><hr><i>Koneko</i></body></html>`;
+    return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><pre>${escapeHtml(message)}</pre><hr><i>Koneko</i></body></html>`;
 }
 
 export function konekoHelpers(limit) {
