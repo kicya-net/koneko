@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, test } from 'node:test';
@@ -171,6 +173,41 @@ describe('Koneko', () => {
         assert.equal(results.length, n);
         for (const { body } of results) {
             assert.match(body, /<h1>Hello, World!<\/h1>/);
+        }
+    });
+
+    test('recompiles edited templates and includes on subsequent renders', async () => {
+        const siteRoot = fs.mkdtempSync(join(tmpdir(), 'koneko-template-reload-'));
+        fs.mkdirSync(join(siteRoot, '_partials'), { recursive: true });
+        fs.writeFileSync(join(siteRoot, 'page.cat'), '<%= "before page" %>\n<% await include("./_partials/value.cat"); %>\n', 'utf8');
+        fs.writeFileSync(join(siteRoot, '_partials', 'value.cat'), '<%= "before partial" %>\n', 'utf8');
+
+        try {
+            const siteId = 'test-template-reload';
+
+            const first = await koneko.renderFile('page.cat', {
+                siteId,
+                siteRoot,
+                request: {},
+            });
+            assert.match(first.body, /before page/);
+            assert.match(first.body, /before partial/);
+
+            fs.writeFileSync(join(siteRoot, 'page.cat'), '<%= "after page updated" %>\n<% await include("./_partials/value.cat"); %>\n', 'utf8');
+            fs.writeFileSync(join(siteRoot, '_partials', 'value.cat'), '<%= "after partial updated more" %>\n', 'utf8');
+            await new Promise((resolve) => setTimeout(resolve, 120));
+
+            const second = await koneko.renderFile('page.cat', {
+                siteId,
+                siteRoot,
+                request: {},
+            });
+            assert.match(second.body, /after page updated/);
+            assert.match(second.body, /after partial updated more/);
+            assert.doesNotMatch(second.body, /before page/);
+            assert.doesNotMatch(second.body, /before partial/);
+        } finally {
+            fs.rmSync(siteRoot, { recursive: true, force: true });
         }
     });
 

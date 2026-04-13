@@ -78,7 +78,22 @@ export async function createApis(siteWorker) {
             compiledTemplateCode = compileTemplate(templateCode, filePath);
             siteWorker.koneko.compiledTemplateCache.set(templateKey, compiledTemplateCode);
         }
-        return compiledTemplateCode;
+        return {
+            code: compiledTemplateCode,
+            templateKey,
+        };
+    }
+
+    async function getTemplateKey(filePath) {
+        const fullFilePath = path.join(siteWorker.siteRoot, filePath);
+        if(!fullFilePath.startsWith(siteWorker.siteRoot + path.sep)) {
+            throw new Error('Invalid file path');
+        }
+        const stat = fs.statSync(fullFilePath);
+        if(!stat.isFile()) {
+            throw new Error('Not a file: ' + filePath);
+        }
+        return `${siteWorker.siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
     }
 
     const fsBridge = createFsBridge(siteWorker.siteRoot);
@@ -88,6 +103,7 @@ export async function createApis(siteWorker) {
     const [code, args] = buildSandboxClosure(SANDBOX_CODE, {
         getModule,
         getTemplateCode,
+        getTemplateKey,
         safeFetch: async (url, options) => safeFetch(url, options),
         cryptoBridge,
         fsBridge,

@@ -1,14 +1,36 @@
 const templates = Object.create(null);
+const templateKeys = Object.create(null);
+const templateCheckedAt = Object.create(null);
+const templateCheckIntervalMs = 500;
 
 async function ensureTemplate(filePath) {
-    if(filePath in templates) {
+    if(filePath === '__template' && filePath in templates) {
         return;
     }
-    const code = await $getTemplateCode.apply(undefined, [filePath], {
+    let templateKey = null;
+    if(filePath in templates) {
+        const now = Date.now();
+        if(now - (templateCheckedAt[filePath] ?? 0) < templateCheckIntervalMs) {
+            return;
+        }
+        templateCheckedAt[filePath] = now;
+        templateKey = await $getTemplateKey.apply(undefined, [filePath], {
+            arguments: { copy: true },
+            result: { promise: true, copy: true },
+        });
+        if(templateKeys[filePath] === templateKey) {
+            return;
+        }
+    }
+    const loaded = await $getTemplateCode.apply(undefined, [filePath], {
         arguments: { copy: true },
         result: { promise: true, copy: true },
     });
-    (0, eval)(code);
+    const code = loaded.code;
+    templateKey = loaded.templateKey;
+    globalThis.eval(code);
+    templateKeys[filePath] = templateKey;
+    templateCheckedAt[filePath] = Date.now();
     if(!(filePath in templates)) {
         throw new Error('Template not found: ' + filePath);
     }
