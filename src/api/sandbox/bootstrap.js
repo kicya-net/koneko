@@ -190,6 +190,14 @@
         return _require('path').resolveRequire(fromFilePath, requiredPath);
     }
 
+    function kcBridge(op) {
+        const args = Array.prototype.slice.call(arguments, 1);
+        return $cryptoBridge.applySync(undefined, [op].concat(args), {
+            arguments: { copy: true },
+            result: { copy: true },
+        });
+    }
+
     function _require(filePath) {
         const cachedModule = requireCache.get(filePath);
         if(cachedModule) {
@@ -199,15 +207,23 @@
         const module = { exports: {} };
         requireCache.set(filePath, module);
         const exports = module.exports;
-        const code = filePath in internalModuleCodes
+        const isInternal = filePath in internalModuleCodes;
+        const code = isInternal
             ? internalModuleCodes[filePath]
             : $getModule.applySyncPromise(undefined, [filePath], {
                 arguments: { copy: true },
             });
-        const moduleFactory = new Function('module', 'exports', 'require', code);
-        moduleFactory(module, exports, function(requiredPath) {
+        const moduleFactory = isInternal
+            ? new Function('module', 'exports', 'require', '_kc', code)
+            : new Function('module', 'exports', 'require', code);
+        const childRequire = function(requiredPath) {
             return _require(resolveRequire(filePath, requiredPath));
-        });
+        };
+        if(isInternal) {
+            moduleFactory(module, exports, childRequire, kcBridge);
+        } else {
+            moduleFactory(module, exports, childRequire);
+        }
         return module.exports;
     }
 

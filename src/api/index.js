@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { compileTemplate } from '../compile.js';
+import { cryptoBridge } from './crypto-bridge.js';
 import { safeFetch } from './net.js';
 
 const sandboxDir = new URL('./sandbox/', import.meta.url);
@@ -82,6 +83,7 @@ export async function createApis(siteWorker) {
         getModule,
         getTemplateCode,
         safeFetch: async (url, options) => safeFetch(url, options),
+        cryptoBridge,
     });
 
     await siteWorker.context.evalClosure(code, args, {
