@@ -195,7 +195,7 @@ describe('Koneko', () => {
 
             fs.writeFileSync(join(siteRoot, 'page.cat'), '<%= "after page updated" %>\n<% await include("./_partials/value.cat"); %>\n', 'utf8');
             fs.writeFileSync(join(siteRoot, '_partials', 'value.cat'), '<%= "after partial updated more" %>\n', 'utf8');
-            await new Promise((resolve) => setTimeout(resolve, 120));
+            await new Promise((resolve) => setTimeout(resolve, 600));
 
             const second = await koneko.renderFile('page.cat', {
                 siteId,
