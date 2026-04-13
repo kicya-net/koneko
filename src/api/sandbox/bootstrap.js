@@ -282,6 +282,8 @@
     });
 
     globalThis.Headers = Headers;
+    globalThis.atob = atob;
+    globalThis.btoa = btoa;
     globalThis.fetch = async function fetch(url, options) {
         const data = await $safeFetch.apply(undefined, [url, options || {}], {
             arguments: { copy: true },

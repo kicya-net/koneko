@@ -37,12 +37,6 @@ const crypto = {
     timingSafeEqual(a, b) {
         return bridge('timingSafeEqual', String(a), String(b));
     },
-    base64UrlEncode(str) {
-        return bridge('base64UrlEncode', String(str));
-    },
-    base64UrlDecode(str) {
-        return bridge('base64UrlDecode', String(str));
-    },
 };
 
 module.exports = Object.freeze(crypto);

@@ -112,16 +112,4 @@ describe('require("crypto")', () => {
         const out = await render('require("crypto").timingSafeEqual("a", "ab")');
         assert.equal(out, 'false');
     });
-
-    test('base64UrlEncode encodes UTF-8 without padding', async () => {
-        const out = await render('require("crypto").base64UrlEncode("a")');
-        assert.equal(out, 'YQ');
-    });
-
-    test('base64UrlDecode inverts base64UrlEncode', async () => {
-        const out = await render(
-            'require("crypto").base64UrlDecode(require("crypto").base64UrlEncode("café"))',
-        );
-        assert.equal(out, 'café');
-    });
 });

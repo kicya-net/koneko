@@ -39,10 +39,6 @@ export function cryptoBridge(op, ...args) {
             }
             return nodeCrypto.timingSafeEqual(Buffer.from(s, 'utf8'), Buffer.from(t, 'utf8'));
         }
-        case 'base64UrlEncode':
-            return Buffer.from(String(args[0]), 'utf8').toString('base64url');
-        case 'base64UrlDecode':
-            return Buffer.from(String(args[0]), 'base64url').toString('utf8');
         default:
             throw new Error('Unknown crypto operation');
     }

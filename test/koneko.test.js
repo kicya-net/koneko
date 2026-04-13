@@ -138,6 +138,27 @@ describe('Koneko', () => {
         assert.doesNotMatch(body, /"hidden"/);
     });
 
+    test('exposes atob and btoa globals', async () => {
+        const { body, response } = await koneko.renderCode(`
+            <%- JSON.stringify({
+                encoded: btoa("hello"),
+                decoded: atob("aGVsbG8="),
+                roundTrip: atob(btoa("koneko"))
+            }) %>
+        `, {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+
+        assert.equal(response.status, 200);
+        assert.deepEqual(JSON.parse(body), {
+            encoded: 'aGVsbG8=',
+            decoded: 'hello',
+            roundTrip: 'koneko',
+        });
+    });
+
     test('concurrent renderFile for the same file completes for all requests', async () => {
         const concurrent = new Koneko({
             isolateCount: 4,
