@@ -137,7 +137,12 @@ export async function validateUrl(urlString) {
         if (isBlockedIP(host)) {
             throw new Error('Fetching private/internal IPs is not allowed');
         }
-        return parsed.toString();
+        return {
+            url: parsed.toString(),
+            host,
+            hostHeader: parsed.host,
+            resolvedAddress: host,
+        };
     }
 
     // Resolve hostname and check IP
@@ -146,5 +151,10 @@ export async function validateUrl(urlString) {
         throw new Error('Fetching private/internal IPs is not allowed');
     }
 
-    return parsed.toString();
+    return {
+        url: parsed.toString(),
+        host,
+        hostHeader: parsed.host,
+        resolvedAddress: address,
+    };
 }

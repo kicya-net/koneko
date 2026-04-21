@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { request, EnvHttpProxyAgent, interceptors } from 'undici';
+import { request, EnvHttpProxyAgent } from 'undici';
 import { validateUrl } from './utils.js';
 
 const MAX_RESPONSE_BYTES = 20 * 1024 * 1024;
 
-const safeFetchDispatcher = new EnvHttpProxyAgent().compose(
-    interceptors.redirect({ maxRedirections: 20 }),
-);
+const safeFetchDispatcher = new EnvHttpProxyAgent();
+const MAX_REDIRECTIONS = 20;
 
 function incomingHeadersToObject(headers) {
     const out = {};
@@ -58,44 +57,78 @@ async function readBodyWithLimit(body, maxBytes) {
 }
 
 export async function safeFetch(urlString, options = {}) {
-    const validatedUrl = await validateUrl(urlString);
-
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4_000); // 4s timeout
 
     try {
-        const req = {
-            method: options.method || 'GET',
-            headers: options.headers || {},
-            signal: controller.signal,
-            headersTimeout: 4_000,
-            maxRedirections: 20,
-            dispatcher: safeFetchDispatcher,
-        };
-        if (options.body != null) req.body = options.body;
+        let currentUrl = String(urlString);
+        let method = options.method || 'GET';
+        let body = options.body;
+        const baseHeaders = options.headers || {};
 
-        const { statusCode, statusText, headers, body } = await request(validatedUrl, req);
-
-        const cl = headers['content-length'];
-        if (cl != null) {
-            const raw = Array.isArray(cl) ? cl[0] : cl;
-            const n = Number(raw);
-            if (Number.isFinite(n) && n > MAX_RESPONSE_BYTES) {
-                await body.dump({ limit: 0 });
-                throw new Error('Response too large (max 20MB)');
+        for (let redirects = 0; redirects <= MAX_REDIRECTIONS; redirects += 1) {
+            const validated = await validateUrl(currentUrl);
+            const targetUrl = new URL(validated.url);
+            targetUrl.hostname = validated.resolvedAddress;
+            const headers = {
+                ...baseHeaders,
+                host: validated.hostHeader,
+            };
+            const req = {
+                method,
+                headers,
+                signal: controller.signal,
+                headersTimeout: 4_000,
+                maxRedirections: 0,
+                dispatcher: safeFetchDispatcher,
+            };
+            if (targetUrl.protocol === 'https:' && validated.host !== validated.resolvedAddress) {
+                req.servername = validated.host;
             }
+            if (body != null) {
+                req.body = body;
+            }
+            const { statusCode, statusText, headers: responseHeaders, body: responseBody } = await request(targetUrl, req);
+
+            if (statusCode >= 300 && statusCode < 400 && responseHeaders.location != null) {
+                await responseBody.dump({ limit: 0 });
+                if (redirects === MAX_REDIRECTIONS) {
+                    throw new Error('Too many redirects');
+                }
+                const location = Array.isArray(responseHeaders.location) ? responseHeaders.location[0] : responseHeaders.location;
+                if (!location) {
+                    throw new Error('Invalid redirect location');
+                }
+                currentUrl = new URL(location, validated.url).toString();
+                if (statusCode === 303 || ((statusCode === 301 || statusCode === 302) && method.toUpperCase() === 'POST')) {
+                    method = 'GET';
+                    body = undefined;
+                }
+                continue;
+            }
+
+            const cl = responseHeaders['content-length'];
+            if (cl != null) {
+                const raw = Array.isArray(cl) ? cl[0] : cl;
+                const n = Number(raw);
+                if (Number.isFinite(n) && n > MAX_RESPONSE_BYTES) {
+                    await responseBody.dump({ limit: 0 });
+                    throw new Error('Response too large (max 20MB)');
+                }
+            }
+
+            const arrayBuffer = await readBodyWithLimit(responseBody, MAX_RESPONSE_BYTES);
+
+            return {
+                status: statusCode,
+                statusText,
+                headers: incomingHeadersToObject(responseHeaders),
+                body: arrayBuffer,
+                bodyText: new TextDecoder().decode(arrayBuffer),
+                ok: statusCode >= 200 && statusCode < 300,
+            };
         }
-
-        const arrayBuffer = await readBodyWithLimit(body, MAX_RESPONSE_BYTES);
-
-        return {
-            status: statusCode,
-            statusText,
-            headers: incomingHeadersToObject(headers),
-            body: arrayBuffer,
-            bodyText: new TextDecoder().decode(arrayBuffer),
-            ok: statusCode >= 200 && statusCode < 300,
-        };
+        throw new Error('Too many redirects');
     } finally {
         clearTimeout(timeout);
     }
