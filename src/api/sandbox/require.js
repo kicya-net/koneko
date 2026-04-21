@@ -6,23 +6,20 @@ const internalModuleCodes = Object.freeze(
 );
 
 const _internals = Object.freeze({
-    cryptoInvoke(op) {
-        const args = Array.prototype.slice.call(arguments, 1);
-        return $cryptoBridge.applySync(undefined, [op].concat(args), {
+    cryptoInvoke(op, ...args) {
+        return $cryptoBridge.applySync(undefined, [op, ...args], {
             arguments: { copy: true },
             result: { copy: true },
         });
     },
-    fsInvoke(op) {
-        const args = Array.prototype.slice.call(arguments, 1);
-        return $fsBridge.apply(undefined, [op].concat(args), {
+    fsInvoke(op, ...args) {
+        return $fsBridge.apply(undefined, [op, ...args], {
             arguments: { copy: true },
             result: { promise: true, copy: true },
         });
     },
-    sqliteInvoke(op) {
-        const args = Array.prototype.slice.call(arguments, 1);
-        return $sqliteBridge.apply(undefined, [op].concat(args), {
+    sqliteInvoke(op, ...args) {
+        return $sqliteBridge.apply(undefined, [op, ...args], {
             arguments: { copy: true },
             result: { promise: true, copy: true },
         });
