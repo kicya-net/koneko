@@ -48,6 +48,9 @@ function _require(filePath) {
         : $getModule.applySyncPromise(undefined, [filePath], {
             arguments: { copy: true },
         });
+    if(filePath.endsWith('.json')) {
+        return JSON.parse(code);
+    }
     const moduleFactory = new Function('module', 'exports', 'require', `${code}\n//# sourceURL=${filePath}`);
     const childRequire = function(requiredPath) {
         if(requiredPath === '__internals') {
