@@ -20,6 +20,18 @@ import { LRUCache } from 'lru-cache';
 import { IsolatePool } from './isolates.js';
 import { compileTemplate, templateStackLineOffset } from './compile.js';
 import { SiteWorker } from './site.js';
+import { fileURLToPath } from 'node:url';
+
+const konekoRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+
+function sanitizeFramePath(capturedPath) {
+    const clean = capturedPath.replace(/^\/{2,}/, '/');
+    if(clean === konekoRoot || clean.startsWith(konekoRoot + path.sep)) {
+        const rel = path.relative(konekoRoot, clean).split(path.sep).join('/');
+        return { path: `<koneko>:${rel}`, internal: true };
+    }
+    return { path: clean, internal: false };
+}
 
 function normalizeFilePath(filePath) {
     if(filePath.startsWith('./')) filePath = filePath.slice(2);
@@ -46,8 +58,10 @@ function normalizeRenderError(error, fallbackFilePath) {
     for(const line of lines.slice(1)) {
         let match = line.match(/((?:\/|__template)[^:()]*)\:(\d+):(\d+)\)?$/);
         if(match) {
+            const sanitized = sanitizeFramePath(match[1]);
             let sourceLine = Number(match[2]);
-            if(match[1].endsWith('.js')) {
+            if(sanitized.internal) {
+            } else if(match[1].endsWith('.js')) {
                 sourceLine = Math.max(1, sourceLine - 2);
             } else {
                 if(sourceLine <= templateStackLineOffset) {
@@ -55,7 +69,7 @@ function normalizeRenderError(error, fallbackFilePath) {
                 }
                 sourceLine -= templateStackLineOffset;
             }
-            const frame = `${match[1]}:${sourceLine}:${match[3]}`;
+            const frame = `${sanitized.path}:${sourceLine}:${match[3]}`;
             if(frames[frames.length - 1] !== frame) {
                 frames.push(frame);
             }
