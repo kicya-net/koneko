@@ -5,6 +5,7 @@ import { cryptoBridge } from './crypto.js';
 import { createSqliteBridge } from './db.js';
 import { createFsBridge } from './fs.js';
 import { safeFetch } from './net.js';
+import ivm from 'isolated-vm';
 
 const internalSandboxDir = new URL('./sandbox/internal/', import.meta.url);
 const internalModuleCodes = Object.fromEntries(
@@ -60,7 +61,21 @@ export async function createApis(siteWorker) {
         if(!stat.isFile()) {
             throw new Error('Not a file: ' + filePath);
         }
-        return await fs.promises.readFile(fullFilePath, 'utf-8');
+        const code = await fs.promises.readFile(fullFilePath, 'utf-8');
+        const moduleKey = `${siteWorker.siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
+        return new ivm.ExternalCopy({ code, moduleKey }).copyInto();
+    }
+    
+    async function getModuleKey(filePath) {
+        const fullFilePath = path.join(siteWorker.siteRoot, filePath);
+        if(!fullFilePath.startsWith(siteWorker.siteRoot + path.sep)) {
+            throw new Error('Invalid file path');
+        }
+        const stat = fs.statSync(fullFilePath);
+        if(!stat.isFile()) {
+            throw new Error('Not a file: ' + filePath);
+        }
+        return `${siteWorker.siteId}:${filePath}:${stat.mtime.getTime()}:${stat.size}`;
     }
 
     async function getTemplateCode(filePath) {
@@ -103,6 +118,7 @@ export async function createApis(siteWorker) {
     });
     const [code, args] = buildSandboxClosure(SANDBOX_CODE, {
         getModule,
+        getModuleKey,
         getTemplateCode,
         getTemplateKey,
         safeFetch: async (url, options) => safeFetch(url, options),
