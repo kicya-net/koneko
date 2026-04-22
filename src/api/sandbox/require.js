@@ -49,7 +49,8 @@ function _require(filePath) {
             arguments: { copy: true },
         });
     if(filePath.endsWith('.json')) {
-        return JSON.parse(code);
+        module.exports = JSON.parse(code);
+        return module.exports
     }
     const moduleFactory = new Function('module', 'exports', 'require', `${code}\n//# sourceURL=${filePath}`);
     const childRequire = function(requiredPath) {
