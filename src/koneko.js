@@ -158,7 +158,7 @@ export class Koneko {
     }
 
     async runTemplate(filePath, site, request) {
-        const body = await site.evalClosure(`return __k.run($0, $1)`, [
+        const result = await site.evalClosure(`return __k.run($0, $1)`, [
             new ivm.ExternalCopy(request).copyInto(),
             new ivm.ExternalCopy(filePath).copyInto(),
         ], {
@@ -166,8 +166,19 @@ export class Koneko {
             result: { promise: true, copy: true },
             arguments: { reference: false },
         });
-
-        return body;
+    
+        if(result && result.ok === false) {
+            const err = new Error(result.error?.message || 'Template error');
+            if(result.error?.name) err.name = result.error.name;
+            if(result.error?.stack) err.stack = result.error.stack;
+            err.debugLogs = result.debugLogs;
+            throw err;
+        }
+    
+        return {
+            body: result.body,
+            response: result.response,
+        };
     }
 
     async renderCode(code, { siteId, siteRoot, request, sqliteDir = null }) {

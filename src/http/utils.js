@@ -22,8 +22,18 @@ function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-export function generateError(status, message) {
-    return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><pre>${escapeHtml(message)}</pre><hr><i>Koneko</i></body></html>`;
+function buildDebugReplayScript(debugLogs) {
+    if(!debugLogs || !debugLogs.length) return '';
+    const payload = JSON.stringify(debugLogs)
+        .replace(/</g, '\\u003c')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
+    return `<script>(function(){const entries=${payload};for(const entry of entries){const fn=console[entry.level]||console.log;fn(...entry.args);}})();document.currentScript.remove();</script>`;
+}
+
+export function generateError(status, message, debugLogs) {
+    const scriptTag = buildDebugReplayScript(debugLogs);
+    return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><pre>${escapeHtml(message)}</pre><hr><i>Koneko</i>${scriptTag}</body></html>`;
 }
 
 export function konekoHelpers(limit) {

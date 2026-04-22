@@ -41,6 +41,13 @@ function normalizeDebugValue(value, seen = new WeakSet(), depth = 0) {
     return out;
 }
 
+function buildDebugLogsPayload(debugLogs) {
+    return debugLogs.map((entry) => ({
+        level: entry.level,
+        args: entry.args.map((value) => normalizeDebugValue(value)),
+    }));
+}
+
 function injectDebugScript(body, response) {
     if(!response.debugLogs.length) {
         return body;
@@ -52,10 +59,7 @@ function injectDebugScript(body, response) {
             return body;
         }
     }
-    const payload = JSON.stringify(response.debugLogs.map((entry) => ({
-        level: entry.level,
-        args: entry.args.map((value) => normalizeDebugValue(value)),
-    })))
+    const payload = JSON.stringify(buildDebugLogsPayload(response.debugLogs))
         .replace(/</g, '\\u003c')
         .replace(/\u2028/g, '\\u2028')
         .replace(/\u2029/g, '\\u2029');

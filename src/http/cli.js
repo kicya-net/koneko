@@ -93,7 +93,7 @@ async function serve(name, sub, options) {
     app.use(express.static(fullPublicDir));
     app.use((err, req, res, next) => {
         console.error(err);
-        res.status(500).send(generateError(500, err?.stack ?? String(err)));
+        res.status(500).send(generateError(500, err?.stack ?? String(err), err?.debugLogs));
     });
     app.use((req, res, next) => {
         res.status(404).send(generateError(404, 'Not found'));
@@ -178,7 +178,7 @@ async function http(name, sub, options) {
 
     app.use((err, req, res, next) => {
         console.error(err);
-        res.status(500).send(generateError(500, 'Internal server error'));
+        res.status(500).send(generateError(500, err?.stack ?? String(err), err?.debugLogs));
     });
 
     if (options.sock) {

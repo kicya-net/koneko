@@ -45,11 +45,24 @@ async function _runTemplate(req, filePath, locals) {
     await ensureTemplate(filePath);
     const ctx = createContext(req);
     try {
-        await withResponse(ctx.response, async function() {
-            await templates[filePath](ctx, filePath, locals || {});
-        });
+        try {
+            await withResponse(ctx.response, async function() {
+                await templates[filePath](ctx, filePath, locals || {});
+            });
+        } catch(err) {
+            return {
+                ok: false,
+                error: {
+                    name: err?.name || 'Error',
+                    message: err?.message || String(err),
+                    stack: err?.stack,
+                },
+                debugLogs: buildDebugLogsPayload(ctx.response.debugLogs),
+            };
+        }
         const body = injectDebugScript(ctx.out.join(''), ctx.response);
         return {
+            ok: true,
             body,
             response: {
                 status: ctx.response.status,
