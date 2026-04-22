@@ -1,6 +1,67 @@
 # Koneko
 
-Secure template pre-processor for multi-tenant web hosting.
+Secure template pre-processor for multi-tenant web hosting. Every site gets its own sandbox with filesystem, SQLite, fetch, and crypto access.
+
+Koneko is mainly built for web-hosting providers, but it can also be used as a standalone server for a single website.
+
+## Features
+
+- Each site safely runs in its own V8 isolate
+- Performant due to reusing V8 isolates and template caching
+- EJS-style tags: `<% code %>`, `<%= escaped %>`, `<%- raw %>`
+- CommonJS support: `require` to load JS modules
+- `include()` to include other templates
+- Per-site memory, CPU, and wall timeout limits
+- Scoped FileSystem, SQLite, crypto, and fetch access
+- `console.log` and `console.error` on server-side are caught and replayed in browser console
+- Errors are caught and displayed with correct line numbers and stack traces
+
+# .cat files
+
+CAT stands for "Computed Active Template". It is the main way to write pages in Koneko. `.cat` files are just HTML files with embedded server-side JavaScript. Here's an example:
+
+```ejs
+<% 
+  const name = "World";
+%>
+<html>
+    <body>
+        <h1>Hello <%= name %>!</h1>
+        <% for(let i = 0; i < 5; i++) { %>
+            <p>Test #<%= i %></p>
+        <% } %>
+    </body>
+</html>
+```
+
+Renders into:
+```html
+<html>
+    <body>
+        <h1>Hello World!</h1>
+        <p>Test #0</p>
+        <p>Test #1</p>
+        <p>Test #2</p>
+        <p>Test #3</p>
+        <p>Test #4</p>
+    </body>
+</html>
+```
+
+## Installation
+
+Simply get it from npm:
+```
+npm install -g koneko
+```
+
+You can then run it as a CLI:
+
+```
+koneko serve . --public public -- port 3000
+```
+
+This will serve the current folder with `public` directory being the public directory.
 
 ## CLI
 
