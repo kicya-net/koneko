@@ -41,6 +41,18 @@ describe('require()', () => {
         assert.equal(body.trim(), 'test');
     });
 
+    test('loads JSON as a parsed object', async () => {
+        const { body, response } = await koneko.renderFile('require/json.cat', {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+        assert.equal(response.status, 200);
+        assert.equal(response.statusText, '');
+        assert.deepEqual(response.headers, {});
+        assert.equal(body.trim(), 'from-json:3');
+    });
+
     test('supports module.exports reassignment', async () => {
         const { body, response } = await koneko.renderFile('require/module-exports.cat', {
             siteId: 'test-site',
