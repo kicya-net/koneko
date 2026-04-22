@@ -57,7 +57,15 @@ export async function createApis(siteWorker) {
         if(!fullFilePath.startsWith(siteWorker.siteRoot + path.sep)) {
             throw new Error('Invalid file path');
         }
-        const stat = fs.statSync(fullFilePath);
+        let stat;
+        try {
+            stat = await fs.promises.stat(fullFilePath);
+        } catch(err) {
+            if(err.code === 'ENOENT') {
+                throw new Error(`Module not found: ${filePath}`);
+            }
+            throw err;
+        }
         if(!stat.isFile()) {
             throw new Error('Not a file: ' + filePath);
         }
@@ -71,7 +79,15 @@ export async function createApis(siteWorker) {
         if(!fullFilePath.startsWith(siteWorker.siteRoot + path.sep)) {
             throw new Error('Invalid file path');
         }
-        const stat = fs.statSync(fullFilePath);
+        let stat;
+        try {
+            stat = await fs.promises.stat(fullFilePath);
+        } catch(err) {
+            if(err.code === 'ENOENT') {
+                throw new Error(`Module not found: ${filePath}`);
+            }
+            throw err;
+        }
         if(!stat.isFile()) {
             throw new Error('Not a file: ' + filePath);
         }
@@ -83,7 +99,15 @@ export async function createApis(siteWorker) {
         if(!fullFilePath.startsWith(siteWorker.siteRoot + path.sep)) {
             throw new Error('Invalid file path');
         }
-        const stat = fs.statSync(fullFilePath);
+        let stat;
+        try {
+            stat = await fs.promises.stat(fullFilePath);
+        } catch(err) {
+            if(err.code === 'ENOENT') {
+                throw new Error(`Template not found: ${filePath}`);
+            }
+            throw err;
+        }
         if(!stat.isFile()) {
             throw new Error('Not a file: ' + filePath);
         }
@@ -99,13 +123,21 @@ export async function createApis(siteWorker) {
             templateKey,
         };
     }
-
+    
     async function getTemplateKey(filePath) {
         const fullFilePath = path.join(siteWorker.siteRoot, filePath);
         if(!fullFilePath.startsWith(siteWorker.siteRoot + path.sep)) {
             throw new Error('Invalid file path');
         }
-        const stat = fs.statSync(fullFilePath);
+        let stat;
+        try {
+            stat = await fs.promises.stat(fullFilePath);
+        } catch(err) {
+            if(err.code === 'ENOENT') {
+                throw new Error(`Template not found: ${filePath}`);
+            }
+            throw err;
+        }
         if(!stat.isFile()) {
             throw new Error('Not a file: ' + filePath);
         }
