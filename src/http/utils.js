@@ -98,7 +98,7 @@ export function applyResponseHeaders(res, headers) {
     }
 }
 
-export function buildRequest(req) {
+export function buildRequest(req, params = {}) {
     return {
         url: req.url,
         path: req.path,
@@ -107,6 +107,7 @@ export function buildRequest(req) {
         body: buildBody(req),
         query: req.query,
         cookies: req.cookies,
+        params,
     };
 }
 

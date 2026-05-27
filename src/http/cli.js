@@ -4,6 +4,7 @@ import express from 'ultimate-express';
 import { konekoMiddleware } from './middleware.js';
 import { Koneko } from '../koneko.js';
 import { applyResponseHeaders, buildRequest, generateError, konekoHelpers } from './utils.js';
+import { deriveRouteParams } from './routes.js';
 import args from 'args';
 import cluster from 'node:cluster';
 import fs from 'node:fs';
@@ -158,12 +159,16 @@ async function http(name, sub, options) {
         const siteId = req.get('X-Koneko-Site-Id') ?? req.hostname;
         const siteRoot = req.get('X-Koneko-Site-Root');
         const sqliteDir = req.get('X-Koneko-Sqlite-Dir') ?? null;
-        const filePath = req.get('X-Koneko-File-Path') ?? req.path;
-        const request = buildRequest(req);
+        const filePathHeader = req.get('X-Koneko-File-Path');
+        const filePath = filePathHeader ?? req.path;
+        const params = filePathHeader ? deriveRouteParams(filePathHeader, req.path, req.get('X-Koneko-Public-Dir') ?? 'public') : {};
 
         if (!siteId) return res.status(500).send(generateError(500, 'Site ID not set'));
         if (!siteRoot) return res.status(500).send(generateError(500, 'Site root not set'));
         if (!filePath) return res.status(500).send(generateError(500, 'File path not set'));
+        if (!params) return res.status(400).send(generateError(400, 'Route params do not match file path'));
+
+        const request = buildRequest(req, params);
 
         try {
             const body = await koneko.renderFile(filePath, { siteId, siteRoot, sqliteDir, request });

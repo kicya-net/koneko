@@ -14,7 +14,6 @@ Koneko is mainly built for web-hosting providers, but it can also be used as a s
 - Per-site memory, CPU, and wall timeout limits
 - Scoped FileSystem, SQLite, crypto, and fetch access
 - `console.log` and `console.error` on server-side are caught and replayed in browser console
-- Errors are caught and displayed with correct line numbers and stack traces
 
 # .cat files
 

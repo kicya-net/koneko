@@ -80,6 +80,37 @@ async function startCliServe(clean, { cwd, port, siteRoot = assetsRoot, publicDi
     return { baseUrl, close, getStderr: () => stderr, getStdout: () => stdout };
 }
 
+async function startCliHttp({ port, threads = 1 } = {}) {
+    port ??= await getFreePort();
+    const args = [cliPath, 'http', '--port', String(port), '--threads', String(threads)];
+
+    const child = spawn(process.execPath, args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stderr = '';
+    child.stderr.setEncoding('utf8');
+    child.stderr.on('data', (chunk) => {
+        stderr += chunk;
+    });
+
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitForServer(`${baseUrl}/`);
+
+    async function close() {
+        if (child.exitCode !== null) return;
+        child.kill('SIGTERM');
+        await Promise.race([
+            new Promise((resolve) => child.once('exit', resolve)),
+            wait(2000).then(() => {
+                if (child.exitCode === null) child.kill('SIGKILL');
+            }),
+        ]);
+    }
+
+    return { baseUrl, close, getStderr: () => stderr };
+}
+
 describe('CLI serve', () => {
     test('clean off serves / and /index.cat, but not /index', async () => {
         const { baseUrl, close, getStderr } = await startCliServe(false, { publicDir: '.' });
@@ -225,30 +256,76 @@ const message = require('../lib/message.js');
         assert.equal(getStderr(), '');
     });
 
-    test('_catchall.cat handles unmatched routes and prefers deeper matches', async () => {
-        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-catchall-'));
+    test('named segment routes expose params and refresh after startup', async () => {
+        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-routes-'));
         fs.mkdirSync(join(siteRoot, 'public'));
-        fs.mkdirSync(join(siteRoot, 'public', 'api'));
-        fs.writeFileSync(join(siteRoot, 'public', '_catchall.cat'), '<p>root catchall</p>\n');
-        fs.writeFileSync(join(siteRoot, 'public', 'api', '_catchall.cat'), '<p>api catchall</p>\n');
-        fs.writeFileSync(join(siteRoot, 'public', 'api', 'users.cat'), '<p>users exact</p>\n');
+        fs.mkdirSync(join(siteRoot, 'public', 'users', '[id]', 'posts'), { recursive: true });
+        fs.writeFileSync(join(siteRoot, 'public', 'users', '[id].cat'), '<%- JSON.stringify({ route: "user", params: request.params }) %>\n');
+        fs.writeFileSync(join(siteRoot, 'public', 'users', '[id]', 'posts', '[postId].cat'), '<%- JSON.stringify({ route: "post", params: request.params }) %>\n');
+        fs.writeFileSync(join(siteRoot, 'public', '_catchall.cat'), '<p>old catchall</p>\n');
 
         const { baseUrl, close, getStderr } = await startCliServe(false, {
             siteRoot,
         });
 
         try {
-            const rootCatchall = await fetch(`${baseUrl}/missing-route`);
-            assert.equal(rootCatchall.status, 200);
-            assert.match(await rootCatchall.text(), /<p>root catchall<\/p>/);
+            const user = await fetch(`${baseUrl}/users/123`);
+            assert.equal(user.status, 200);
+            assert.deepEqual(JSON.parse(await user.text()), {
+                route: 'user',
+                params: { id: '123' },
+            });
 
-            const nestedCatchall = await fetch(`${baseUrl}/api/missing-route`);
-            assert.equal(nestedCatchall.status, 200);
-            assert.match(await nestedCatchall.text(), /<p>api catchall<\/p>/);
+            const post = await fetch(`${baseUrl}/users/123/posts/456`);
+            assert.equal(post.status, 200);
+            assert.deepEqual(JSON.parse(await post.text()), {
+                route: 'post',
+                params: { id: '123', postId: '456' },
+            });
 
-            const exact = await fetch(`${baseUrl}/api/users.cat`);
-            assert.equal(exact.status, 200);
-            assert.match(await exact.text(), /<p>users exact<\/p>/);
+            const catchall = await fetch(`${baseUrl}/missing-route`);
+            assert.equal(catchall.status, 404);
+
+            const beforeRefresh = await fetch(`${baseUrl}/live/koneko`);
+            assert.equal(beforeRefresh.status, 404);
+            fs.mkdirSync(join(siteRoot, 'public', 'live'));
+            fs.writeFileSync(join(siteRoot, 'public', 'live', '[slug].cat'), '<%- JSON.stringify(request.params) %>\n');
+            await wait(1200);
+
+            const afterRefresh = await fetch(`${baseUrl}/live/koneko`);
+            assert.equal(afterRefresh.status, 200);
+            assert.deepEqual(JSON.parse(await afterRefresh.text()), { slug: 'koneko' });
+        } finally {
+            await close();
+            fs.rmSync(siteRoot, { recursive: true, force: true });
+        }
+
+        assert.equal(getStderr(), '');
+    });
+});
+
+describe('CLI http', () => {
+    test('derives named route params from file path and request path', async () => {
+        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-http-routes-'));
+        fs.mkdirSync(join(siteRoot, 'www', 'users', '[id]', 'posts'), { recursive: true });
+        fs.writeFileSync(join(siteRoot, 'www', 'users', '[id]', 'posts', '[postId].cat'), '<%- JSON.stringify(request.params) %>\n');
+
+        const { baseUrl, close, getStderr } = await startCliHttp();
+
+        try {
+            const response = await fetch(`${baseUrl}/users/123/posts/456`, {
+                headers: {
+                    'x-koneko-site-id': 'test-site',
+                    'x-koneko-site-root': siteRoot,
+                    'x-koneko-public-dir': 'www',
+                    'x-koneko-file-path': 'www/users/[id]/posts/[postId].cat',
+                },
+            });
+            assert.equal(response.status, 200);
+            assert.deepEqual(JSON.parse(await response.text()), {
+                id: '123',
+                postId: '456',
+            });
         } finally {
             await close();
             fs.rmSync(siteRoot, { recursive: true, force: true });

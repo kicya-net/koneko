@@ -77,6 +77,7 @@ function createContext(req) {
             body: createBody(req?.body),
             query: req?.query,
             cookies: req?.cookies,
+            params: req?.params ?? {},
         },
         response: null,
         out: [],
