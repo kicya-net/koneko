@@ -47,7 +47,7 @@ export function createFsBridge(siteRoot) {
         const st = await fs.promises.lstat(full);
         return {
             size: st.size,
-            mtimeMs: st.mtimeMs,
+            mtimeMs: parseInt(st.mtimeMs),
             isFile: st.isFile(),
             isDirectory: st.isDirectory(),
             isSymbolicLink: st.isSymbolicLink(),
