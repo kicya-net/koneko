@@ -10,4 +10,4 @@ const request = ctx.request;
 const response = ctx.response;
 const __out = ctx.out;
 function echo(v) { __out.push(v); }
-function escapeHtml(v) { if(v==null)return""; return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function escapeHtml(v) { if(v==null)return""; return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
