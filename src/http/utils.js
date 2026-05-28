@@ -108,6 +108,9 @@ export function buildRequest(req, params = {}) {
         query: req.query,
         cookies: req.cookies,
         params,
+        ip: req.ip,
+        hostname: req.hostname,
+        protocol: req.protocol,
     };
 }
 

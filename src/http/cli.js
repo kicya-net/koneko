@@ -24,6 +24,7 @@ args
     .option('memory', 'The memory limit for each isolate in MB', process.env.ISOLATE_MEMORY_LIMIT_MB ? Number(process.env.ISOLATE_MEMORY_LIMIT_MB) : 64)
     .option('cpu-timeout', 'The CPU timeout for each isolate in milliseconds', process.env.ISOLATE_CPU_TIMEOUT ? Number(process.env.ISOLATE_CPU_TIMEOUT) : 25)
     .option('wall-timeout', 'The wall timeout for each isolate in milliseconds', process.env.ISOLATE_WALL_TIMEOUT ? Number(process.env.ISOLATE_WALL_TIMEOUT) : 5000)
+    .option('trust-proxy', 'Trust X-Forwarded-* headers from reverse proxies', process.env.TRUST_PROXY === 'true')
     .command('serve', 'Serve a project', serve)
     .command('http', 'Run internal Koneko HTTP server', http)
     .example('koneko serve .', 'Serve the current project using ./public')
@@ -75,10 +76,13 @@ async function serve(name, sub, options) {
         console.log(`- Max file size: ${options.fileSize} MB`);
         console.log(`- SQLite dir: ${options.sqliteDir ?? '(disabled)'}`);
         console.log(`- Clean: ${options.clean}`);
+        console.log(`- Trust proxy: ${options.trustProxy}`);
         return;
     }
 
     const app = express();
+    const trustProxy = options.trustProxy === true;
+    if (trustProxy !== false) app.set('trust proxy', trustProxy);
     app.use(konekoMiddleware({
         siteRoot: fullSiteRoot,
         publicDir: fullPublicDir,
@@ -136,12 +140,15 @@ async function http(name, sub, options) {
         console.log(`- Isolate count per process: ${options.isolates}`);
         console.log(`- Memory limit: ${options.memory} MB`);
         console.log(`- Max file size: ${options.fileSize} MB`);
+        console.log(`- Trust proxy: ${options.trustProxy}`);
         return;
     }
 
     await import('./logs.js');
 
     const app = express();
+    const trustProxy = options.trustProxy === true;
+    if (trustProxy !== false) app.set('trust proxy', trustProxy);
     const koneko = new Koneko({
         isolateCount: options.isolates,
         memoryLimit: options.memory,

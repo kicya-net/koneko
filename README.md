@@ -113,7 +113,7 @@ CLI will take `.env` file for the default values.
 - KONEKO_SECRET: The secret to use for the Koneko API. If set, the server will require the `X-Koneko-Secret` header to be set.
 - MAX_FILE_SIZE_MB: The maximum file size to accept in MB. By default, it will accept 20MB.
 - SANDBOX_DOMAIN: If set to `1`, the server will sanitize the `Set-Cookie` header by removing the `Domain` cookie attribute.
-
+- TRUST_PROXY: Trust `X-Forwarded-*` headers from reverse proxies.
 ## License
 
 Koneko is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details. Copyright (c) 2026 Kicya.
