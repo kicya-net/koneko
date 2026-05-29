@@ -171,10 +171,11 @@ export class Koneko {
         return siteWorker;
     }
 
-    async runTemplate(filePath, site, request) {
-        const result = await site.evalClosure(`return __k.run($0, $1)`, [
+    async runTemplate(filePath, site, request, locals = {}) {
+        const result = await site.evalClosure(`return __k.run($0, $1, $2)`, [
             new ivm.ExternalCopy(request).copyInto(),
             new ivm.ExternalCopy(filePath).copyInto(),
+            new ivm.ExternalCopy(locals).copyInto(),
         ], {
             timeout: this.wallTimeout,
             result: { promise: true, copy: true },
@@ -195,13 +196,13 @@ export class Koneko {
         };
     }
 
-    async renderCode(code, { siteId, siteRoot, request, sqliteDir = null }) {
+    async renderCode(code, { siteId, siteRoot, request, sqliteDir = null, locals = {} }) {
         const site = await this.acquireSite(siteId, siteRoot, sqliteDir);
         try {
             const templateCode = compileTemplate(code, '__template');
             const fn = await site.compileScript(templateCode);
             await site.runScript(fn);
-            return await this.runTemplate('__template', site, request);
+            return await this.runTemplate('__template', site, request, locals);
         } catch (error) {
             throw normalizeRenderError(error, '__template');
         } finally {
@@ -209,11 +210,11 @@ export class Koneko {
         }
     }
 
-    async renderFile(filePath, { siteId, siteRoot, request, sqliteDir = null }) {
+    async renderFile(filePath, { siteId, siteRoot, request, sqliteDir = null, locals = {} }) {
         filePath = normalizeFilePath(filePath);
         const site = await this.acquireSite(siteId, siteRoot, sqliteDir);
         try {
-            return await this.runTemplate(filePath, site, request);
+            return await this.runTemplate(filePath, site, request, locals);
         } catch (error) {
             throw normalizeRenderError(error, filePath);
         } finally {

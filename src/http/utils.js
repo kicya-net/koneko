@@ -17,6 +17,8 @@ import ivm from 'isolated-vm';
 import fileUpload from 'express-fileupload';
 import express from 'ultimate-express';
 import cookie from 'cookie';
+import fs from 'node:fs';
+import path from 'node:path';
 
 function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -34,6 +36,41 @@ function buildDebugReplayScript(debugLogs) {
 export function generateError(status, message, debugLogs) {
     const scriptTag = buildDebugReplayScript(debugLogs);
     return `<!DOCTYPE html><html><body><h1>Error ${status}</h1><pre>${escapeHtml(message)}</pre><hr><i>Koneko</i>${scriptTag}</body></html>`;
+}
+
+export async function sendErrorPage({ req, res, koneko, siteId, siteRoot, publicPath, sqliteDir = null, status, error }) {
+    const message = error?.message ?? (status === 404 ? 'Not found' : String(error ?? 'Internal server error'));
+    const fallbackMessage = error?.stack ?? message;
+    const errorFilePath = path.join(publicPath, '_error.cat');
+
+    try {
+        const stat = await fs.promises.stat(errorFilePath);
+        if(!stat.isFile()) {
+            return res.status(status).send(generateError(status, fallbackMessage, error?.debugLogs));
+        }
+    } catch(err) {
+        if(err.code !== 'ENOENT') throw err;
+        return res.status(status).send(generateError(status, fallbackMessage, error?.debugLogs));
+    }
+
+    try {
+        const renderFilePath = path.relative(siteRoot, errorFilePath).replace(/\\/g, '/');
+        const errorLocal = { code: status, message };
+        if(error?.stack) errorLocal.stack = error.stack;
+        const body = await koneko.renderFile(renderFilePath, {
+            siteId,
+            siteRoot,
+            sqliteDir,
+            request: buildRequest(req),
+            locals: { error: errorLocal },
+        });
+        applyResponseHeaders(res, body.response.headers);
+        res.status(body.response.status);
+        return res.send(body.body);
+    } catch(err) {
+        console.error(err);
+        return res.status(status).send(generateError(status, fallbackMessage, error?.debugLogs));
+    }
 }
 
 export function konekoHelpers(limit) {

@@ -3,7 +3,7 @@ import 'dotenv/config';
 import express from 'ultimate-express';
 import { konekoMiddleware } from './middleware.js';
 import { Koneko } from '../koneko.js';
-import { applyResponseHeaders, buildRequest, generateError, konekoHelpers } from './utils.js';
+import { applyResponseHeaders, buildRequest, generateError, konekoHelpers, sendErrorPage } from './utils.js';
 import { deriveRouteParams } from './routes.js';
 import args from 'args';
 import cluster from 'node:cluster';
@@ -83,25 +83,47 @@ async function serve(name, sub, options) {
     const app = express();
     const trustProxy = options.trustProxy === true;
     if (trustProxy !== false) app.set('trust proxy', trustProxy);
+    const koneko = new Koneko({
+        isolateCount: options.isolates,
+        memoryLimit: options.memory,
+        cpuTimeout: options.cpuTimeout,
+        wallTimeout: options.wallTimeout,
+    });
     app.use(konekoMiddleware({
         siteRoot: fullSiteRoot,
         publicDir: fullPublicDir,
         sqliteDir: options.sqliteDir,
         clean: options.clean,
-        konekoOptions: {
-            isolateCount: options.isolates,
-            memoryLimit: options.memory,
-            cpuTimeout: options.cpuTimeout,
-            wallTimeout: options.wallTimeout,
-        },
+        koneko,
     }));
     app.use(express.static(fullPublicDir));
     app.use((err, req, res, next) => {
         console.error(err);
-        res.status(500).send(generateError(500, err?.stack ?? String(err), err?.debugLogs));
+        const status = Number(err?.statusCode ?? err?.status ?? 500);
+        return sendErrorPage({
+            req,
+            res,
+            koneko,
+            siteId: req.hostname ?? 'default',
+            siteRoot: fullSiteRoot,
+            publicPath: fullPublicDir,
+            sqliteDir: options.sqliteDir,
+            status: status >= 400 && status <= 599 ? status : 500,
+            error: err,
+        });
     });
     app.use((req, res, next) => {
-        res.status(404).send(generateError(404, 'Not found'));
+        return sendErrorPage({
+            req,
+            res,
+            koneko,
+            siteId: req.hostname ?? 'default',
+            siteRoot: fullSiteRoot,
+            publicPath: fullPublicDir,
+            sqliteDir: options.sqliteDir,
+            status: 404,
+            error: { message: 'Not found' },
+        });
     });
     if (options.sock) {
         app.listen(options.sock);

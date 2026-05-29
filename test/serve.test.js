@@ -256,6 +256,101 @@ const message = require('../lib/message.js');
         assert.equal(getStderr(), '');
     });
 
+    test('renders public _error.cat for missing routes', async () => {
+        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-error-'));
+        fs.mkdirSync(join(siteRoot, 'public'));
+        fs.writeFileSync(join(siteRoot, 'public', 'index.cat'), '<h1>home</h1>\n');
+        fs.writeFileSync(join(siteRoot, 'public', '_error.cat'), `<%
+response.headers.set('x-error-page', 'custom');
+%>
+<h1>Error <%= locals.error.code %></h1>
+<p><%= locals.error.message %></p>
+`);
+
+        const { baseUrl, close, getStderr } = await startCliServe(false, {
+            siteRoot,
+        });
+
+        try {
+            const resp = await fetch(`${baseUrl}/missing`);
+            assert.equal(resp.status, 404);
+            assert.equal(resp.headers.get('x-error-page'), 'custom');
+            const body = await resp.text();
+            assert.match(body, /<h1>Error 404<\/h1>/);
+            assert.match(body, /<p>Not found<\/p>/);
+        } finally {
+            await close();
+            fs.rmSync(siteRoot, { recursive: true, force: true });
+        }
+
+        assert.equal(getStderr(), '');
+    });
+
+    test('renders public _error.cat for template errors and allows status overrides', async () => {
+        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-render-error-'));
+        fs.mkdirSync(join(siteRoot, 'public'));
+        fs.writeFileSync(join(siteRoot, 'public', 'index.cat'), `<%
+throw new Error('page exploded');
+%>
+`);
+        fs.writeFileSync(join(siteRoot, 'public', '_error.cat'), `<%
+response.status = 418;
+%>
+<h1><%= locals.error.code %></h1>
+<p><%= locals.error.message %></p>
+<pre><%= locals.error.stack %></pre>
+`);
+
+        const { baseUrl, close, getStderr } = await startCliServe(false, {
+            siteRoot,
+        });
+
+        try {
+            const resp = await fetch(`${baseUrl}/`);
+            assert.equal(resp.status, 418);
+            const body = await resp.text();
+            assert.match(body, /<h1>500<\/h1>/);
+            assert.match(body, /<p>page exploded<\/p>/);
+            assert.match(body, /Error: page exploded/);
+        } finally {
+            await close();
+            fs.rmSync(siteRoot, { recursive: true, force: true });
+        }
+
+        assert.match(getStderr(), /page exploded/);
+    });
+
+    test('direct clean route to _error.cat defaults to a 404 without a stack', async () => {
+        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-direct-error-'));
+        fs.mkdirSync(join(siteRoot, 'public'));
+        fs.writeFileSync(join(siteRoot, 'public', 'index.cat'), '<h1>home</h1>\n');
+        fs.writeFileSync(join(siteRoot, 'public', '_error.cat'), `<%- JSON.stringify({
+    code: locals.error.code,
+    message: locals.error.message,
+    hasStack: 'stack' in locals.error,
+}) %>
+`);
+
+        const { baseUrl, close, getStderr } = await startCliServe(true, {
+            siteRoot,
+        });
+
+        try {
+            const resp = await fetch(`${baseUrl}/_error`);
+            assert.equal(resp.status, 404);
+            assert.deepEqual(JSON.parse(await resp.text()), {
+                code: 404,
+                message: 'Not found',
+                hasStack: false,
+            });
+        } finally {
+            await close();
+            fs.rmSync(siteRoot, { recursive: true, force: true });
+        }
+
+        assert.equal(getStderr(), '');
+    });
+
     test('named segment routes expose params and refresh after startup', async () => {
         const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-routes-'));
         fs.mkdirSync(join(siteRoot, 'public'));
