@@ -23,7 +23,7 @@ export function createFsBridge(siteRoot) {
         }
         if(mode === 'buffer') {
             const buf = await fs.promises.readFile(full);
-            return Array.from(buf);
+            return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
         }
         throw new Error('Invalid read mode');
     }

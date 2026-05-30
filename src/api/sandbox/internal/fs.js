@@ -9,8 +9,7 @@ const fs = {
         if(enc === 'utf8' || enc === 'utf-8') {
             return await fsInvoke('readFile', p, 'utf8');
         }
-        const bytes = await fsInvoke('readFile', p, 'buffer');
-        return new Uint8Array(bytes).buffer;
+        return await fsInvoke('readFile', p, 'buffer');
     },
     readdir(dirPath) {
         return fsInvoke('readdir', String(dirPath));
@@ -28,11 +27,14 @@ const fs = {
             await fsInvoke('writeFile', p, { kind: 'utf8', data });
             return;
         }
-        if(data instanceof Uint8Array) {
-            await fsInvoke('writeFile', p, { kind: 'buffer', data: Array.from(data) });
+        if(ArrayBuffer.isView(data)) {
+            await fsInvoke('writeFile', p, {
+                kind: 'buffer',
+                data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+            });
             return;
         }
-        throw new TypeError('writeFile data must be string or Uint8Array');
+        throw new TypeError('writeFile data must be string or a TypedArray/DataView');
     },
     mkdir(dirPath, options) {
         return fsInvoke('mkdir', String(dirPath), options || {});

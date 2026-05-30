@@ -100,6 +100,23 @@ describe('require("fs")', () => {
         assert.equal(out, '7:8');
     });
 
+    test('writeFile accepts typed array views', async () => {
+        const code = '<% const u = new Int8Array([-1, 2]); await require("fs").writeFile("i8.bin", u); %>'
+            + '<% const ab = await require("fs").readFile("i8.bin"); const x = new Uint8Array(ab); %>'
+            + '<%= Array.from(x).join(",") %>';
+        const out = await renderCode(code);
+        assert.equal(out, '255,2');
+    });
+
+    test('writeFile accepts DataView slices', async () => {
+        const code = '<% const bytes = new Uint8Array([0, 7, 8, 9, 0]); %>'
+            + '<% await require("fs").writeFile("dataview.bin", new DataView(bytes.buffer, 1, 3)); %>'
+            + '<% const ab = await require("fs").readFile("dataview.bin"); const x = new Uint8Array(ab); %>'
+            + '<%= Array.from(x).join(",") %>';
+        const out = await renderCode(code);
+        assert.equal(out, '7,8,9');
+    });
+
     test('mkdir creates nested directory', async () => {
         const code = '<% await require("fs").mkdir("a/b", { recursive: true }); %>'
             + '<%= (await require("fs").stat("a/b")).isDirectory %>';
