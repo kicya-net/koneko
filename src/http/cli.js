@@ -122,7 +122,7 @@ async function serve(name, sub, options) {
             publicPath: fullPublicDir,
             sqliteDir: options.sqliteDir,
             status: 404,
-            error: { message: 'Not found' },
+            error: { message: 'Not found', stack: 'Error: Not found' },
         });
     });
     if (options.sock) {

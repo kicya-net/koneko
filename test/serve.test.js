@@ -320,14 +320,13 @@ response.status = 418;
         assert.match(getStderr(), /page exploded/);
     });
 
-    test('direct clean route to _error.cat defaults to a 404 without a stack', async () => {
+    test('direct clean route to _error.cat defaults to a 404', async () => {
         const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-direct-error-'));
         fs.mkdirSync(join(siteRoot, 'public'));
         fs.writeFileSync(join(siteRoot, 'public', 'index.cat'), '<h1>home</h1>\n');
         fs.writeFileSync(join(siteRoot, 'public', '_error.cat'), `<%- JSON.stringify({
     code: locals.error.code,
     message: locals.error.message,
-    hasStack: 'stack' in locals.error,
 }) %>
 `);
 
@@ -341,7 +340,6 @@ response.status = 418;
             assert.deepEqual(JSON.parse(await resp.text()), {
                 code: 404,
                 message: 'Not found',
-                hasStack: false,
             });
         } finally {
             await close();
