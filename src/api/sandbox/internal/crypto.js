@@ -1,4 +1,4 @@
-const { cryptoInvoke } = require('__internals');
+const { bcryptInvoke, cryptoInvoke } = require('__internals');
 
 const crypto = {
     sha256(data) {
@@ -33,6 +33,12 @@ const crypto = {
     },
     timingSafeEqual(a, b) {
         return cryptoInvoke('timingSafeEqual', String(a), String(b));
+    },
+    bcryptHash(data) {
+        return bcryptInvoke('hash', String(data));
+    },
+    bcryptCompare(data, hash) {
+        return bcryptInvoke('compare', String(data), String(hash));
     },
 };
 
