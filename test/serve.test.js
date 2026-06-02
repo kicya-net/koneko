@@ -320,6 +320,36 @@ response.status = 418;
         assert.match(getStderr(), /page exploded/);
     });
 
+    test('keeps explicit template error status when _error.cat does not override it', async () => {
+        const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-render-status-error-'));
+        fs.mkdirSync(join(siteRoot, 'public'));
+        fs.writeFileSync(join(siteRoot, 'public', 'index.cat'), `<%
+response.status = 404;
+throw new Error('not found');
+%>
+`);
+        fs.writeFileSync(join(siteRoot, 'public', '_error.cat'), `<h1><%= locals.error.code %></h1>
+<p><%= locals.error.message %></p>
+`);
+
+        const { baseUrl, close, getStderr } = await startCliServe(false, {
+            siteRoot,
+        });
+
+        try {
+            const resp = await fetch(`${baseUrl}/`);
+            assert.equal(resp.status, 404);
+            const body = await resp.text();
+            assert.match(body, /<h1>404<\/h1>/);
+            assert.match(body, /<p>not found<\/p>/);
+        } finally {
+            await close();
+            fs.rmSync(siteRoot, { recursive: true, force: true });
+        }
+
+        assert.match(getStderr(), /not found/);
+    });
+
     test('direct clean route to _error.cat defaults to a 404', async () => {
         const siteRoot = fs.mkdtempSync(join(__dirname, '.koneko-serve-direct-error-'));
         fs.mkdirSync(join(siteRoot, 'public'));

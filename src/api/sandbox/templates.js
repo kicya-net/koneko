@@ -57,6 +57,11 @@ async function _runTemplate(req, filePath, locals) {
                     message: err?.message || String(err),
                     stack: err?.stack,
                 },
+                response: {
+                    status: ctx.response.status,
+                    statusText: ctx.response.statusText,
+                    headers: Object.fromEntries(ctx.response.headers.entries()),
+                },
                 debugLogs: buildDebugLogsPayload(ctx.response.debugLogs),
             };
         }

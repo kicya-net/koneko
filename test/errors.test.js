@@ -43,6 +43,20 @@ describe('render errors', () => {
         });
     });
 
+    test('thrown template errors keep explicit response error status', async () => {
+        await assert.rejects(async () => {
+            await koneko.renderCode('<%\n    response.status = 404;\n    throw new Error(\'not found\');\n%>', {
+                siteId: 'test-site-errors',
+                siteRoot: assetsRoot,
+                request: {},
+            });
+        }, (error) => {
+            assert.equal(error.status, 404);
+            assert.match(error.stack, /^Error: not found\n    at __template:3:\d+$/);
+            return true;
+        });
+    });
+
     test('include errors keep the included template and caller frames', async () => {
         await assert.rejects(async () => {
             await koneko.renderFile('error.cat', {

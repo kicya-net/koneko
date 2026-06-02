@@ -186,6 +186,8 @@ export class Koneko {
             const err = new Error(result.error?.message || 'Template error');
             if(result.error?.name) err.name = result.error.name;
             if(result.error?.stack) err.stack = result.error.stack;
+            const status = Number(result.response?.status);
+            if(status >= 400 && status <= 599) err.status = status;
             err.debugLogs = result.debugLogs;
             throw err;
         }
