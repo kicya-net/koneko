@@ -87,7 +87,11 @@ globalThis.clearTimeout = function clearTimeout(id) {
     unlinkTimeout(key, response);
 };
 globalThis.fetch = async function fetch(url, options) {
-    const data = await $safeFetch.apply(undefined, [url, options || {}], {
+    const fetchOptions = options ? { ...options } : {};
+    if(fetchOptions.headers instanceof Headers) {
+        fetchOptions.headers = Object.fromEntries(fetchOptions.headers.entries());
+    }
+    const data = await $safeFetch.apply(undefined, [url, fetchOptions], {
         arguments: { copy: true },
         result: { promise: true, copy: true },
     });
