@@ -113,3 +113,24 @@ describe('require("crypto")', () => {
         assert.equal(out, 'false');
     });
 });
+
+describe('require("bcrypt")', () => {
+    test('exposes a frozen module', async () => {
+        const out = await render('Object.isFrozen(require("bcrypt"))');
+        assert.equal(out, 'true');
+    });
+
+    test('hash uses 10 rounds and compare verifies plaintext', async () => {
+        const tpl = '<% const bcrypt = require("bcrypt"); const hash = await bcrypt.hash("secret"); %>'
+            + '<%= /^\\$2[aby]\\$10\\$/.test(hash) %>:'
+            + '<%= await bcrypt.compare("secret", hash) %>:'
+            + '<%= await bcrypt.compare("wrong", hash) %>';
+        const { body, response } = await koneko.renderCode(tpl, {
+            siteId: 'test-site',
+            siteRoot: assetsRoot,
+            request: {},
+        });
+        assert.equal(response.status, 200);
+        assert.equal(body.trim(), 'true:true:false');
+    });
+});

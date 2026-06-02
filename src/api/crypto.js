@@ -1,4 +1,5 @@
 import nodeCrypto from 'node:crypto';
+import bcrypt from 'bcrypt';
 
 const HASH_ALGOS = new Set(['sha256', 'sha512', 'sha1', 'md5']);
 
@@ -41,5 +42,20 @@ export function cryptoBridge(op, ...args) {
         }
         default:
             throw new Error('Unknown crypto operation');
+    }
+}
+
+export async function bcryptBridge(op, ...args) {
+    switch(op) {
+        case 'hash': {
+            const [data] = args;
+            return await bcrypt.hash(String(data), 10);
+        }
+        case 'compare': {
+            const [data, hash] = args;
+            return await bcrypt.compare(String(data), String(hash));
+        }
+        default:
+            throw new Error('Unknown bcrypt operation');
     }
 }

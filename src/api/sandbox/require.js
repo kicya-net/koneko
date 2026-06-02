@@ -15,6 +15,12 @@ const _internals = Object.freeze({
             result: { copy: true },
         });
     },
+    bcryptInvoke(op, ...args) {
+        return $bcryptBridge.apply(undefined, [op, ...args], {
+            arguments: { copy: true },
+            result: { promise: true, copy: true },
+        });
+    },
     fsInvoke(op, ...args) {
         return $fsBridge.apply(undefined, [op, ...args], {
             arguments: { copy: true },

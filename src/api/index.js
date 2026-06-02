@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { compileTemplate } from '../compile.js';
-import { cryptoBridge } from './crypto.js';
+import { bcryptBridge, cryptoBridge } from './crypto.js';
 import { createSqliteBridge } from './db.js';
 import { createFsBridge } from './fs.js';
 import { safeFetch } from './net.js';
@@ -155,6 +155,7 @@ export async function createApis(siteWorker) {
         getTemplateKey,
         safeFetch: async (url, options) => safeFetch(url, options),
         cryptoBridge,
+        bcryptBridge,
         fsBridge,
         sqliteBridge,
         parseUrl(url, base) {
