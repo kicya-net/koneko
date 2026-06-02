@@ -192,14 +192,6 @@ export function createSqliteBridge(sqliteDir, options = {}) {
             if(op === 'run') {
                 return await client.call('run', dbName, String(args[1]), normalizeParams(args[2]), queryTimeoutMs);
             }
-            if(op === 'query') {
-                return {
-                    rows: await client.call('all', dbName, String(args[1]), normalizeParams(args[2]), queryTimeoutMs),
-                };
-            }
-            if(op === 'exec') {
-                return await client.call('run', dbName, String(args[1]), normalizeParams(args[2]), queryTimeoutMs);
-            }
             throw new Error('Unknown sqlite operation');
         } catch(error) {
             if(error?.code === 'SQLITE_TIMEOUT' || error?.code === 'SQLITE_CLOSED' || error?.code === 'SQLITE_WORKER_EXIT') {

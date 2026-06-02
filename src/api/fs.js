@@ -56,13 +56,14 @@ export function createFsBridge(siteRoot) {
 
     async function writeFile(relPath, payload) {
         const full = resolveUnderSiteRoot(siteRoot, relPath);
-        if(payload.kind === 'utf8') {
+        if(payload.recursive) {
             await fs.promises.mkdir(path.dirname(full), { recursive: true });
+        }
+        if(payload.kind === 'string') {
             await fs.promises.writeFile(full, String(payload.data), 'utf8');
             return;
         }
         if(payload.kind === 'buffer') {
-            await fs.promises.mkdir(path.dirname(full), { recursive: true });
             await fs.promises.writeFile(full, Buffer.from(payload.data));
             return;
         }

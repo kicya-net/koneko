@@ -18,12 +18,6 @@ const sqlite = {
             async run(sql, params) {
                 return await sqliteInvoke('run', name, String(sql), params == null ? null : params);
             },
-            async query(sql, params) {
-                return await sqliteInvoke('query', name, String(sql), params == null ? null : params);
-            },
-            async exec(sql, params) {
-                return await sqliteInvoke('exec', name, String(sql), params == null ? null : params);
-            },
         });
         handles.set(name, handle);
         return handle;

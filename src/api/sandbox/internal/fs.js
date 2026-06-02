@@ -17,20 +17,17 @@ const fs = {
     stat(filePath) {
         return fsInvoke('stat', String(filePath));
     },
-    async writeFile(filePath, data, encoding) {
+    async writeFile(filePath, data, options = {}) {
         const p = String(filePath);
         if(typeof data === 'string') {
-            const enc = encoding == null ? 'utf8' : String(encoding).toLowerCase();
-            if(enc !== 'utf8' && enc !== 'utf-8') {
-                throw new Error('writeFile with string data only supports utf-8');
-            }
-            await fsInvoke('writeFile', p, { kind: 'utf8', data });
+            await fsInvoke('writeFile', p, { kind: 'string', data, recursive: options?.recursive });
             return;
         }
         if(ArrayBuffer.isView(data)) {
             await fsInvoke('writeFile', p, {
                 kind: 'buffer',
                 data: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+                recursive: options?.recursive,
             });
             return;
         }

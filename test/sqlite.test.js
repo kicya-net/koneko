@@ -53,14 +53,14 @@ describe('require("sqlite")', () => {
     });
 
     test('open(name) returns named databases with positional parameter support', async () => {
-        await renderCode('<% await require("sqlite").open("main").exec("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)") %>', sqliteDir);
+        await renderCode('<% await require("sqlite").open("main").run("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)") %>', sqliteDir);
         const out = await renderCode(`
             <%
                 const db = require("sqlite").open("main");
-                await db.exec("INSERT INTO users (name) VALUES (?)", ["koneko"]);
-                const result = await db.query("SELECT id, name FROM users WHERE name = ?", ["koneko"]);
+                await db.run("INSERT INTO users (name) VALUES (?)", ["koneko"]);
+                const result = await db.all("SELECT id, name FROM users WHERE name = ?", ["koneko"]);
             %>
-            <%- JSON.stringify(result.rows) %>
+            <%- JSON.stringify(result) %>
         `, sqliteDir);
         assert.equal(out, '[{"id":1,"name":"koneko"}]');
     });
@@ -112,8 +112,8 @@ describe('require("sqlite")', () => {
             'const sqlite = require("sqlite");',
             '',
             'module.exports = async function() {',
-            '    const result = await sqlite.open("module").query("SELECT name FROM users WHERE id = ?", [1]);',
-            '    return result.rows[0].name;',
+            '    const result = await sqlite.open("module").get("SELECT name FROM users WHERE id = ?", [1]);',
+            '    return result.name;',
             '};',
             '',
         ].join('\n'));
@@ -129,19 +129,6 @@ describe('require("sqlite")', () => {
         assert.equal(response.statusText, '');
         assert.deepEqual(response.headers, {});
         assert.equal(body.trim(), 'module-user');
-    });
-
-    test('query and exec remain compatible aliases', async () => {
-        const out = await renderCode(`
-            <%
-                const db = require("sqlite").open("compat");
-                await db.exec("CREATE TABLE t (id INTEGER PRIMARY KEY, value TEXT NOT NULL)");
-                const inserted = await db.exec("INSERT INTO t (value) VALUES (?)", ["ok"]);
-                const queried = await db.query("SELECT value FROM t WHERE id = ?", [inserted.lastInsertRowid]);
-            %>
-            <%- JSON.stringify({ inserted, queried }) %>
-        `, sqliteDir);
-        assert.equal(out, '{"inserted":{"changes":1,"lastInsertRowid":1},"queried":{"rows":[{"value":"ok"}]}}');
     });
 
     test('concurrent sqlite renders with one isolate complete without abandoning promises', async () => {
@@ -181,13 +168,13 @@ describe('require("sqlite")', () => {
         await __clearSqliteCache();
         assert.equal(__sqliteCacheSize(), 0);
 
-        await koneko.renderCode('<% await require("sqlite").open("cache").query("SELECT 1 AS n") %>', {
+        await koneko.renderCode('<% await require("sqlite").open("cache").run("SELECT 1 AS n") %>', {
             siteId: 'cache-a',
             siteRoot,
             sqliteDir,
             request: {},
         });
-        await koneko.renderCode('<% await require("sqlite").open("cache").query("SELECT 2 AS n") %>', {
+        await koneko.renderCode('<% await require("sqlite").open("cache").run("SELECT 2 AS n") %>', {
             siteId: 'cache-b',
             siteRoot,
             sqliteDir,
